@@ -1,0 +1,11 @@
+server:
+    port: 8080
+    mode: debug
+database:
+    host: localhost
+    port: 3306
+    username: root
+    password: zth20041017
+    dbname: blocksbom
+jwt:
+    secret: WLvozgf-GQJNw1FYWboOfEe3AH8ltoDGT-k3DFUUcJY=

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - blockSBOM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles/auth.css">
+</head>
+<body>
+    <div class="circle-container">
+        <div class="circle">
+            <div class="circle-content">
+                <h1>blockSBOM</h1>
+                <p>软件物料清单管理系统</p>
+            </div>
+            
+            <div class="form-container">
+                <form id="registerForm" class="auth-form">
+                    <h2>注册账号</h2>
+                    <div class="input-group">
+                        <input type="text" id="username" required pattern="^[a-zA-Z0-9_\u4e00-\u9fa5]{3,50}$">
+                        <label for="username">用户名</label>
+                        <div class="validation-hint">支持中文、字母、数字和下划线</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="email" id="email" required>
+                        <label for="email">邮箱</label>
+                        <div class="validation-hint">请输入有效的邮箱地址</div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input type="password" id="password" required pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,32}$">
+                        <label for="password">密码</label>
+                        <button type="button" class="toggle-password">
+                            <i class="far fa-eye"></i>
+                        </button>
+                        <div class="validation-hint">至少6位，包含大小写字母和数字</div>
+                    </div>
+                    
+                    <div class="message" id="message"></div>
+                    
+                    <button type="submit" class="submit-btn">注册</button>
+                    
+                    <a href="login.html" class="switch-link">返回登录</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../scripts/register.js"></script>
+</body>
+</html>
