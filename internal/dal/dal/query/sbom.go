@@ -1,7 +1,7 @@
 package query
 
 import (
-	"blockSBOM/backend/internal/dal/model"
+	"blockSBOM/internal/dal/dal/model"
 	"context"
 
 	"gorm.io/gorm"

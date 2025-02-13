@@ -1,10 +1,10 @@
 package dal
 
 import (
+	"blockSBOM/internal/config"
+	"blockSBOM/internal/dal/dal/model"
 	"fmt"
 
-	"blockSBOM/backend/internal/config"
-	"blockSBOM/backend/internal/dal/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

@@ -1,9 +1,8 @@
 package did
 
 import (
-	"blockSBOM/backend/internal/blockchain/contracts"
-	"blockSBOM/backend/internal/dal/model"
-	"blockSBOM/backend/internal/dal/query"
+	"blockSBOM/internal/dal/dal/model"
+	"blockSBOM/internal/dal/dal/query"
 	"context"
 	"fmt"
 	"time"
