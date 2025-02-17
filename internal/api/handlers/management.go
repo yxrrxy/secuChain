@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"blockSBOM/backend/internal/service/management"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"

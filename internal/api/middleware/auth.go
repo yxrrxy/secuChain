@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"blockSBOM/internal/api/api/handlers"
+	"blockSBOM/internal/api/handlers"
 	"blockSBOM/pkg/utils"
 	"context"
 	"strings"

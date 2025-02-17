@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"blockSBOM/backend/internal/service/auth"
+	"blockSBOM/internal/service/auth"
 	"context"
 	"strings"
 

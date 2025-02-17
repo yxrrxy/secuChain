@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"blockSBOM/backend/internal/service/did"
+	"blockSBOM/internal/service/did"
 	"context"
 
 	"github.com/cloudwego/hertz/pkg/app"
