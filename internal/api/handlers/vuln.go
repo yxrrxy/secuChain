@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	""
 	"context"
 
 	"github.com/cloudwego/hertz/pkg/app"

@@ -1,6 +1,7 @@
 package sbom
 
 import (
+	"blockSBOM/internal/dal/dal/model"
 	"blockSBOM/internal/dal/dal/query"
 	"context"
 	"fmt"

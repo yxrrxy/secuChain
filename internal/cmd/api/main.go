@@ -1,6 +1,16 @@
 package main
 
 import (
+	"blockSBOM/internal/api"
+	"blockSBOM/internal/api/handlers"
+	"blockSBOM/internal/config"
+	"blockSBOM/internal/dal/dal"
+	"blockSBOM/internal/dal/dal/query"
+	"blockSBOM/internal/service/auth"
+	"blockSBOM/internal/service/did"
+	"blockSBOM/internal/service/sbom"
+	"blockSBOM/internal/service/vuln"
+	"blockSBOM/pkg/utils"
 	"context"
 	"fmt"
 	"log"
@@ -8,19 +18,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"blockSBOM/backend/internal/api"
-	"blockSBOM/backend/internal/api/handlers"
-	"blockSBOM/backend/internal/blockchain/contracts"
-	"blockSBOM/backend/internal/blockchain/fabric"
-	"blockSBOM/backend/internal/config"
-	"blockSBOM/backend/internal/dal"
-	"blockSBOM/backend/internal/dal/query"
-	"blockSBOM/backend/internal/service/auth"
-	"blockSBOM/backend/internal/service/did"
-	"blockSBOM/backend/internal/service/sbom"
-	"blockSBOM/backend/internal/service/vuln"
-	"blockSBOM/backend/pkg/utils"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
