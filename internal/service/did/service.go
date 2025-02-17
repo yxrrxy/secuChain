@@ -1,6 +1,7 @@
 package did
 
 import (
+	"blockSBOM/internal/contracts"
 	"blockSBOM/internal/dal/dal/model"
 	"blockSBOM/internal/dal/dal/query"
 	"context"

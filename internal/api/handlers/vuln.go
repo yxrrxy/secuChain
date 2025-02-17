@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"blockSBOM/internal/service/vuln"
 	"context"
 
 	"github.com/cloudwego/hertz/pkg/app"

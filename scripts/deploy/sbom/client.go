@@ -15,24 +15,24 @@ type Args struct {
 
 // Vulnerability represents the structure of a vulnerability entry
 type Vulnerability struct {
-	ID             string `json:"id"`
-	Source         string `json:"sourceIdentifier"`
-	Published      string `json:"published"`
-	LastModified   string `json:"lastModified"`
-	Status         string `json:"vulnStatus"`
-	Description    string `json:"description"`
-	Severity       string `json:"severity"`
-	AttackVector   string `json:"attackVector"`
-	AttackComplexity string `json:"attackComplexity"`
-	PrivilegesRequired string `json:"privilegesRequired"`
-	UserInteraction string `json:"userInteraction"`
-	Scope           string `json:"scope"`
-	ConfidentialityImpact string `json:"confidentialityImpact"`
-	IntegrityImpact string `json:"integrityImpact"`
-	AvailabilityImpact string `json:"availabilityImpact"`
-	CVSSScore       float64 `json:"cvssScore"`
-	CWE             string `json:"cwe"`
-	References      []string `json:"references"`
+	ID                    string   `json:"id"`
+	Source                string   `json:"sourceIdentifier"`
+	Published             string   `json:"published"`
+	LastModified          string   `json:"lastModified"`
+	Status                string   `json:"vulnStatus"`
+	Description           string   `json:"description"`
+	Severity              string   `json:"severity"`
+	AttackVector          string   `json:"attackVector"`
+	AttackComplexity      string   `json:"attackComplexity"`
+	PrivilegesRequired    string   `json:"privilegesRequired"`
+	UserInteraction       string   `json:"userInteraction"`
+	Scope                 string   `json:"scope"`
+	ConfidentialityImpact string   `json:"confidentialityImpact"`
+	IntegrityImpact       string   `json:"integrityImpact"`
+	AvailabilityImpact    string   `json:"availabilityImpact"`
+	CVSSScore             float64  `json:"cvssScore"`
+	CWE                   string   `json:"cwe"`
+	References            []string `json:"references"`
 }
 
 func main() {

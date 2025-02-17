@@ -2,63 +2,48 @@ package handlers
 
 import (
 	"context"
+	"io"
+	"mime/multipart"
+	"os"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
-type ManagementHandler struct {
-	managementService *management.ManagementService
-}
-
-func NewManagementHandler(managementService *management.ManagementService) *ManagementHandler {
-	return &ManagementHandler{
-		managementService: managementService,
-	}
-}
-
-func (h *ManagementHandler) GetOverview(c context.Context, ctx *app.RequestContext) {
-	overview, err := h.managementService.GetOverview(c)
-	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("获取概览失败", err))
-		return
-	}
-
-	ctx.JSON(consts.StatusOK, SuccessResponse("获取概览成功", overview))
-}
-
 func (h *ManagementHandler) UploadPackage(c context.Context, ctx *app.RequestContext) {
-	// 处理文件上传和保存
-}
-
-func (h *ManagementHandler) ListPackages(c context.Context, ctx *app.RequestContext) {
-	packages, err := h.managementService.ListPackages(c)
+	// 示例：处理文件上传
+	file, header, err := ctx.Request.FormFile("file")
 	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("获取软件包列表失败", err))
+		ctx.JSON(consts.StatusBadRequest, ErrorResponse("上传文件失败", err))
+		return
+	}
+	defer file.Close()
+
+	// 示例：保存文件到本地
+	filePath := "uploads/" + header.Filename
+	if err := saveFile(file, filePath); err != nil {
+		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("保存文件失败", err))
 		return
 	}
 
-	ctx.JSON(consts.StatusOK, SuccessResponse("获取软件包列表成功", packages))
-}
-
-func (h *ManagementHandler) GetPackageDetails(c context.Context, ctx *app.RequestContext) {
-	id := ctx.Param("id")
-	packageDetails, err := h.managementService.GetPackageDetails(c, id)
+	// 示例：调用管理服务处理上传的文件
+	err = h.managementService.UploadPackage(c, filePath)
 	if err != nil {
-		ctx.JSON(consts.StatusNotFound, ErrorResponse("获取软件包详情失败", err))
+		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("处理文件失败", err))
 		return
 	}
 
-	ctx.JSON(consts.StatusOK, SuccessResponse("获取软件包详情成功", packageDetails))
+	ctx.JSON(consts.StatusOK, SuccessResponse("文件上传成功", nil))
 }
 
-func (h *ManagementHandler) ScanPackage(c context.Context, ctx *app.RequestContext) {
-	id := ctx.Param("id")
-	scanResult, err := h.managementService.ScanPackage(c, id)
+func saveFile(file multipart.File, filePath string) error {
+	// 示例：保存文件到指定路径
+	out, err := os.Create(filePath)
 	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("扫描软件包失败", err))
-		return
+		return err
 	}
+	defer out.Close()
 
-	ctx.JSON(consts.StatusOK, SuccessResponse("扫描软件包成功", scanResult))
+	_, err = io.Copy(out, file)
+	return err
 }

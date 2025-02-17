@@ -2,7 +2,7 @@ package api
 
 import (
 	"blockSBOM/internal/api/handlers"
-	"blockSBOM/internal/api/api/middleware"
+	"blockSBOM/internal/api/middleware"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 )

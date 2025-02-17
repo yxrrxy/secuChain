@@ -1,11 +1,10 @@
 package config
 
 import (
+	"blockSBOM/pkg/utils"
 	"errors"
 	"fmt"
 	"os"
-
-	"blockSBOM/backend/pkg/utils"
 
 	"gopkg.in/yaml.v3"
 )

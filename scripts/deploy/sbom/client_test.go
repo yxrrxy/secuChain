@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/rpc"
 	"testing"
-	"time"
 )
 
 // 设置测试环境
