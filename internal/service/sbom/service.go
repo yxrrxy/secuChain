@@ -1,46 +1,77 @@
 package sbom
 
 import (
-	"blockSBOM/internal/dal/dal/model"
-	"blockSBOM/internal/dal/dal/query"
 	"context"
+	"encoding/json"
 	"fmt"
-	"time"
+
+	"blockSBOM/internal/contracts/sbom"
+	"blockSBOM/internal/dal/model"
+	"blockSBOM/internal/dal/query"
 
 	"github.com/google/uuid"
 )
 
 type SBOMService struct {
-	contract *contracts.SBOMContract
+	contract *sbom.SmartContract
 	repo     *query.SBOMRepository
 }
 
-func NewSBOMService(contract *contracts.SBOMContract, repo *query.SBOMRepository) *SBOMService {
+func NewSBOMService(contract *sbom.SmartContract, repo *query.SBOMRepository) *SBOMService {
 	return &SBOMService{
 		contract: contract,
 		repo:     repo,
 	}
 }
 
+// 定义 CreateSBOMRequest 结构体
+type CreateSBOMRequest struct {
+	DID      string          `json:"did"`
+	SPDXSBOM *model.SPDXSBOM `json:"spdxSBOM,omitempty"`
+	CDXSBOM  *model.CDXSBOM  `json:"cdxSBOM,omitempty"`
+}
+
 func (s *SBOMService) CreateSBOM(ctx context.Context, req *CreateSBOMRequest) (*model.SBOM, error) {
-	sbom := &model.SPDXSBOM{
-		ID:         uuid.New().String(),
-		Name:       req.Name,
-		Version:    req.Version,
-		Components: req.Components,
-		Format:     req.Format,
-		Created:    time.Now().UTC(),
-		DID:        req.DID,
+	// 创建 SBOM 实例
+	sbom := &model.SBOM{
+		ID:       uuid.New().String(),
+		DID:      req.DID,
+		SPDXSBOM: req.SPDXSBOM,
+		CDXSBOM:  req.CDXSBOM,
+	}
+
+	// 设置 SBOM 格式和内容
+	if sbom.SPDXSBOM != nil {
+		sbom.Format = "spdx"
+		content, err := json.Marshal(sbom.SPDXSBOM)
+		if err != nil {
+			return nil, fmt.Errorf("序列化 SPDX SBOM 失败: %v", err)
+		}
+		sbom.Content = content
+	} else if sbom.CDXSBOM != nil {
+		sbom.Format = "cdx"
+		content, err := json.Marshal(sbom.CDXSBOM)
+		if err != nil {
+			return nil, fmt.Errorf("序列化 CycloneDX SBOM 失败: %v", err)
+		}
+		sbom.Content = content
+	} else {
+		return nil, fmt.Errorf("必须提供 SPDX 或 CycloneDX SBOM 数据")
 	}
 
 	// 先写入区块链
-	if err := s.contract.StoreSBOM(sbom); err != nil {
-		return nil, fmt.Errorf("存储区块链SBOM失败: %v", err)
+	doc, err := json.Marshal(sbom)
+	if err != nil {
+		return nil, fmt.Errorf("序列化 SBOM 失败: %v", err)
+	}
+
+	if err := s.contract.StoreSBOM(ctx, sbom.ID, string(doc)); err != nil {
+		return nil, fmt.Errorf("存储区块链 SBOM 失败: %v", err)
 	}
 
 	// 再写入数据库
 	if err := s.repo.CreateSBOM(ctx, sbom); err != nil {
-		return nil, fmt.Errorf("存储数据库SBOM失败: %v", err)
+		return nil, fmt.Errorf("存储数据库 SBOM 失败: %v", err)
 	}
 
 	return sbom, nil
@@ -54,47 +85,36 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 	}
 
 	// 数据库查询失败，从区块链获取
-	sbom, err = s.contract.GetSBOM(id)
+	sbomDoc, err := s.contract.GetSBOM(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("获取SBOM失败: %v", err)
+		return nil, fmt.Errorf("获取 SBOM 失败: %v", err)
+	}
+
+	// 反序列化 SBOM 文档
+	var sbom model.SBOM
+	if err := json.Unmarshal([]byte(sbomDoc), &sbom); err != nil {
+		return nil, fmt.Errorf("反序列化 SBOM 失败: %v", err)
+	}
+
+	// 根据格式反序列化嵌套的 SBOM 数据
+	if sbom.Format == "spdx" {
+		var spdxSBOM model.SPDXSBOM
+		if err := json.Unmarshal(sbom.Content, &spdxSBOM); err != nil {
+			return nil, fmt.Errorf("反序列化 SPDX SBOM 失败: %v", err)
+		}
+		sbom.SPDXSBOM = &spdxSBOM
+	} else if sbom.Format == "cdx" {
+		var cdxSBOM model.CDXSBOM
+		if err := json.Unmarshal(sbom.Content, &cdxSBOM); err != nil {
+			return nil, fmt.Errorf("反序列化 CycloneDX SBOM 失败: %v", err)
+		}
+		sbom.CDXSBOM = &cdxSBOM
 	}
 
 	// 同步到数据库
-	if err := s.repo.CreateSBOM(ctx, sbom); err != nil {
-		fmt.Printf("同步SBOM到数据库失败: %v\n", err)
+	if err := s.repo.CreateSBOM(ctx, &sbom); err != nil {
+		fmt.Printf("同步 SBOM 到数据库失败: %v\n", err)
 	}
 
-	return sbom, nil
-}
-
-func (s *SBOMService) ListSBOMsByDID(ctx context.Context, did string, offset, limit int) ([]*model.SBOM, int64, error) {
-	return s.repo.ListSBOMsByDID(ctx, did, offset, limit)
-}
-
-func (s *SBOMService) SearchSBOMs(ctx context.Context, keyword string, offset, limit int) ([]*model.SBOM, int64, error) {
-	return s.repo.SearchSBOMs(ctx, keyword, offset, limit)
-}
-
-func (s *SBOMService) ValidateSBOM(ctx context.Context, id string) (bool, error) {
-	sbom, err := s.GetSBOM(ctx, id)
-	if err != nil {
-		return false, nil
-	}
-	return sbom != nil, nil
-}
-
-// Request/Response types
-type CreateSBOMRequest struct {
-	Name       string   `json:"name" binding:"required"`
-	Version    string   `json:"version" binding:"required"`
-	Components []string `json:"components" binding:"required"`
-	Format     string   `json:"format" binding:"required,oneof=spdx cyclonedx swid"`
-	DID        string   `json:"did" binding:"required"`
-}
-
-type UpdateSBOMRequest struct {
-	Name       string   `json:"name" binding:"required"`
-	Version    string   `json:"version" binding:"required"`
-	Components []string `json:"components" binding:"required"`
-	Format     string   `json:"format" binding:"required,oneof=spdx cyclonedx swid"`
+	return &sbom, nil
 }

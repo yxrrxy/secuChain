@@ -33,11 +33,10 @@ type CDXSBOM struct {
 
 // SBOM 是存储在区块链上的通用 SBOM 结构
 type SBOM struct {
-	ID      string          `json:"id"`
-	Format  string          `json:"format"`  // "spdx" 或 "cdx"
-	Content json.RawMessage `json:"content"` // 存储具体格式的 SBOM 内容
-	Created string          `json:"created"`
-	DID     string          `json:"did"`
+	ID       string `json:"id"`       // 区块链中SBOM的唯一标识
+	DID      string `json:"did"`      // 数字身份标识
+	SPDXSBOM string `json:"spdxSBOM"` // SPDX格式的SBOM内容
+	CDXSBOM  string `json:"cdxSBOM"`  // CycloneDX格式的SBOM内容
 }
 
 // SmartContract 提供了 SBOM 相关的函数
@@ -60,22 +59,6 @@ func (s *SmartContract) StoreSBOM(ctx contractapi.TransactionContextInterface, i
 	var sbom SBOM
 	if err := json.Unmarshal([]byte(doc), &sbom); err != nil {
 		return fmt.Errorf("SBOM 格式无效: %v", err)
-	}
-
-	// 根据格式验证内容
-	switch sbom.Format {
-	case "spdx":
-		var spdx SPDXSBOM
-		if err := json.Unmarshal(sbom.Content, &spdx); err != nil {
-			return fmt.Errorf("SPDX 格式无效: %v", err)
-		}
-	case "cdx":
-		var cdx CDXSBOM
-		if err := json.Unmarshal(sbom.Content, &cdx); err != nil {
-			return fmt.Errorf("CycloneDX 格式无效: %v", err)
-		}
-	default:
-		return fmt.Errorf("不支持的 SBOM 格式: %s", sbom.Format)
 	}
 
 	// 存储 SBOM

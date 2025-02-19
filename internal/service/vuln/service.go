@@ -1,8 +1,9 @@
 package vuln
 
 import (
-	"blockSBOM/internal/dal/dal/model"
-	"blockSBOM/internal/dal/dal/query"
+	"blockSBOM/internal/contracts"
+	"blockSBOM/internal/dal/model"
+	"blockSBOM/internal/dal/query"
 	"context"
 	"fmt"
 	"time"
@@ -11,11 +12,11 @@ import (
 )
 
 type VulnService struct {
-	contract *contracts.VulnContract
+	contract contracts.VulnContract
 	repo     *query.VulnRepository
 }
 
-func NewVulnService(contract *contracts.VulnContract, repo *query.VulnRepository) *VulnService {
+func NewVulnService(contract contracts.VulnContract, repo *query.VulnRepository) *VulnService {
 	return &VulnService{
 		contract: contract,
 		repo:     repo,
@@ -34,7 +35,7 @@ func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRe
 	}
 
 	// 先写入区块链
-	if err := s.contract.ReportVulnerability(vuln); err != nil {
+	if err := s.contract.ReportVulnerability(ctx, vuln); err != nil {
 		return nil, fmt.Errorf("报告区块链漏洞失败: %v", err)
 	}
 
@@ -54,7 +55,7 @@ func (s *VulnService) GetVulnerability(ctx context.Context, id string) (*model.V
 	}
 
 	// 数据库查询失败，从区块链获取
-	vuln, err = s.contract.GetVulnerability(id)
+	vuln, err = s.contract.GetVulnerability(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("获取漏洞信息失败: %v", err)
 	}

@@ -1,8 +1,8 @@
 package management
 
 import (
-	"blockSBOM/internal/dal/dal/query"
-	"blockSBOM/internal/contracts"
+	contracts "blockSBOM/internal/contracts/manage"
+	"blockSBOM/internal/dal/query"
 	"context"
 	"errors"
 )

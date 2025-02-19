@@ -25,6 +25,12 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
+type VulnContract interface {
+	ReportVulnerability(ctx contractapi.TransactionContextInterface, id string, doc string) error
+	GetVulnerability(ctx contractapi.TransactionContextInterface, id string) (string, error)
+	GetVulnerabilitiesByPackage(ctx contractapi.TransactionContextInterface, pkg string) ([]string, error)
+}
+
 // ReportVulnerability 报告新的漏洞
 func (s *SmartContract) ReportVulnerability(ctx contractapi.TransactionContextInterface, id string, doc string) error {
 	exists, err := ctx.GetStub().GetState(id)

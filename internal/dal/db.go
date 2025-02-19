@@ -2,7 +2,7 @@ package dal
 
 import (
 	"blockSBOM/internal/config"
-	"blockSBOM/internal/dal/dal/model"
+	"blockSBOM/internal/dal/model"
 	"fmt"
 
 	"gorm.io/driver/mysql"

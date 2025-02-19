@@ -1,10 +1,11 @@
 package did
 
 import (
-	"blockSBOM/internal/contracts"
-	"blockSBOM/internal/dal/dal/model"
-	"blockSBOM/internal/dal/dal/query"
+	contracts "blockSBOM/internal/contracts/did"
+	"blockSBOM/internal/dal/model"
+	"blockSBOM/internal/dal/query"
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -35,13 +36,18 @@ func (s *DIDService) CreateDID(ctx context.Context, req *CreateDIDRequest) (*mod
 	}
 
 	// 先写入区块链
-	if err := s.contract.CreateDID(id, doc); err != nil {
-		return nil, fmt.Errorf("创建区块链DID失败: %v", err)
+	docBytes, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("序列化 DID 文档失败: %v", err)
+	}
+
+	if err := (*s.contract).CreateDID(ctx, id, string(docBytes)); err != nil {
+		return nil, fmt.Errorf("创建区块链 DID 失败: %v", err)
 	}
 
 	// 再写入数据库
 	if err := s.repo.CreateDID(ctx, doc); err != nil {
-		return nil, fmt.Errorf("创建数据库DID失败: %v", err)
+		return nil, fmt.Errorf("创建数据库 DID 失败: %v", err)
 	}
 
 	return doc, nil
@@ -55,15 +61,21 @@ func (s *DIDService) ResolveDID(ctx context.Context, id string) (*model.DIDDocum
 	}
 
 	// 数据库查询失败，从区块链获取
-	doc, err = s.contract.ResolveDID(id)
+	docString, err := (*s.contract).ResolveDID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("解析DID失败: %v", err)
+		return nil, fmt.Errorf("解析区块链 DID 失败: %v", err)
+	}
+
+	// 将区块链返回的 JSON 字符串反序列化为 DID 文档
+	doc = &model.DIDDocument{}
+	if err := json.Unmarshal([]byte(docString), doc); err != nil {
+		return nil, fmt.Errorf("反序列化 DID 文档失败: %v", err)
 	}
 
 	// 同步到数据库
 	if err := s.repo.CreateDID(ctx, doc); err != nil {
 		// 仅记录错误，不影响返回结果
-		fmt.Printf("同步DID到数据库失败: %v\n", err)
+		fmt.Printf("同步 DID 到数据库失败: %v\n", err)
 	}
 
 	return doc, nil
@@ -74,10 +86,10 @@ func (s *DIDService) ListDIDs(ctx context.Context, offset, limit int) ([]*model.
 }
 
 func (s *DIDService) UpdateDID(ctx context.Context, id string, req *UpdateDIDRequest) (*model.DIDDocument, error) {
-	// 先检查DID是否存在
+	// 先检查 DID 是否存在
 	doc, err := s.ResolveDID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("DID不存在: %v", err)
+		return nil, fmt.Errorf("DID 不存在: %v", err)
 	}
 
 	// 更新文档
@@ -86,13 +98,18 @@ func (s *DIDService) UpdateDID(ctx context.Context, id string, req *UpdateDIDReq
 	doc.Updated = time.Now().UTC()
 
 	// 先更新区块链
-	if err := s.contract.CreateDID(id, doc); err != nil {
-		return nil, fmt.Errorf("更新区块链DID失败: %v", err)
+	docBytes, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("序列化 DID 文档失败: %v", err)
+	}
+
+	if err := (*s.contract).CreateDID(ctx, id, string(docBytes)); err != nil {
+		return nil, fmt.Errorf("更新区块链 DID 失败: %v", err)
 	}
 
 	// 再更新数据库
 	if err := s.repo.UpdateDID(ctx, doc); err != nil {
-		return nil, fmt.Errorf("更新数据库DID失败: %v", err)
+		return nil, fmt.Errorf("更新数据库 DID 失败: %v", err)
 	}
 
 	return doc, nil

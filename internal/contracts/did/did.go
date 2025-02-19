@@ -15,6 +15,13 @@ type DIDDocument struct {
 	Updated   string            `json:"updated"`
 }
 
+// DIDContract 定义了与区块链交互的接口
+type DIDContract interface {
+	// 调整方法签名以匹配 SmartContract 的实现
+	CreateDID(ctx contractapi.TransactionContextInterface, id string, doc string) error
+	ResolveDID(ctx contractapi.TransactionContextInterface, id string) (string, error)
+}
+
 // SmartContract 提供了 DID 相关的函数
 type SmartContract struct {
 	contractapi.Contract
@@ -46,14 +53,5 @@ func (s *SmartContract) ResolveDID(ctx contractapi.TransactionContextInterface, 
 	return string(docBytes), nil
 }
 
-func main() {
-	chaincode, err := contractapi.NewChaincode(&SmartContract{})
-	if err != nil {
-		fmt.Printf("创建链码失败: %v", err)
-		return
-	}
-
-	if err := chaincode.Start(); err != nil {
-		fmt.Printf("启动链码失败: %v", err)
-	}
-}
+// 确保 SmartContract 实现了 DIDContract 接口
+var _ DIDContract = (*SmartContract)(nil)

@@ -1,7 +1,7 @@
 package query
 
 import (
-	"blockSBOM/internal/dal/dal/model"
+	"blockSBOM/internal/dal/model"
 	"context"
 	"time"
 

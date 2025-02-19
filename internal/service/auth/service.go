@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"blockSBOM/internal/dal/dal/model"
-	"blockSBOM/internal/dal/dal/query"
+	"blockSBOM/internal/dal/model"
+	"blockSBOM/internal/dal/query"
 	"blockSBOM/pkg/utils"
 	"context"
 	"errors"
