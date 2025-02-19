@@ -1,21 +1,56 @@
 package sbom
 
 import (
+	"blockSBOM/internal/dal/model"
 	"context"
 	"testing"
 
+	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+// 创建 mock 结构体
+type MockContract interface {
+	StoreSBOM(ctx contractapi.TransactionContextInterface, id string, doc string) error
+	GetSBOM(ctx contractapi.TransactionContextInterface, id string) (string, error)
+}
+
+type mockContractImpl struct {
+	mock.Mock
+}
+
+var _ MockContract = (*mockContractImpl)(nil) // 确保实现了接口
+
+func (m *mockContractImpl) StoreSBOM(ctx contractapi.TransactionContextInterface, id string, doc string) error {
+	return nil
+}
+
+func (m *mockContractImpl) GetSBOM(ctx contractapi.TransactionContextInterface, id string) (string, error) {
+	return "", nil
+}
+
+type MockRepo struct {
+	mock.Mock
+}
+
+func (m *MockRepo) CreateSBOM(ctx context.Context, sbom *model.SBOM) error {
+	return nil
+}
+
+func (m *MockRepo) GetSBOM(ctx context.Context, id string) (*model.SBOM, error) {
+	return nil, nil
+}
+
+var mockContract = &mockContractImpl{}
+var mockRepo = &MockRepo{}
 
 func TestCreateSBOM(t *testing.T) {
 	service := NewSBOMService(mockContract, mockRepo)
 	req := &CreateSBOMRequest{
-		Name:       "example",
-		Version:    "1.0.0",
-		Components: []string{"componentA", "componentB"},
-		Format:     "spdx",
-		DID:        "did:example:123456789",
-		Content:    "<SPDX SBOM content here>",
+		DID:      "did:example:123456789",
+		SPDXSBOM: &model.SPDXSBOM{Name: "example", Components: []string{"componentA", "componentB"}},
+		CDXSBOM:  &model.CDXSBOM{Name: "example", Components: []string{"componentA", "componentB"}},
 	}
 
 	sbom, err := service.CreateSBOM(context.Background(), req)

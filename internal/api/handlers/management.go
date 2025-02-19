@@ -4,10 +4,10 @@ import (
 	"context"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/protocol/consts"
 )
 
 // ManagementHandler 处理管理相关的请求
@@ -17,7 +17,8 @@ type ManagementHandler struct {
 
 // ManagementService 定义管理服务接口
 type ManagementService interface {
-	UploadPackage(ctx context.Context, filePath string) error
+	UploadPackage(ctx context.Context, file *multipart.FileHeader) error
+	GetOverview(ctx context.Context) (interface{}, error)
 }
 
 // NewManagementHandler 创建一个新的 ManagementHandler 实例
@@ -28,50 +29,20 @@ func NewManagementHandler(service ManagementService) *ManagementHandler {
 }
 
 // UploadPackage 处理文件上传请求
-func (h *ManagementHandler) UploadPackage(c context.Context, ctx *gin.Context) {
-	// 示例：处理文件上传
-	header, err := ctx.FormFile("file")
+func (h *ManagementHandler) UploadPackage(ctx *app.RequestContext) {
+	file, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "上传文件失败", "message": err.Error()})
+		ctx.JSON(consts.StatusBadRequest, ErrorResponse("获取上传文件失败", err))
 		return
 	}
 
-	// 打开文件并处理错误
-	file, err := header.Open()
+	err = h.managementService.UploadPackage(ctx.GetContext(), file)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "打开文件失败", "message": err.Error()})
-		return
-	}
-	defer file.Close()
-
-	// 示例：保存文件到本地
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "打开文件失败", "message": err.Error()})
-		return
-	}
-	defer file.Close()
-
-	filePath := "uploads/" + header.Filename
-	err = os.MkdirAll("uploads", os.ModePerm)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "创建目录失败", "message": err.Error()})
+		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("上传文件失败", err))
 		return
 	}
 
-	out, err := os.Create(filePath)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "创建文件失败", "message": err.Error()})
-		return
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存文件失败", "message": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "文件上传成功"})
+	ctx.JSON(consts.StatusOK, SuccessResponse("上传文件成功", nil))
 }
 
 // saveFile 将上传的文件保存到指定路径
@@ -85,4 +56,13 @@ func saveFile(file multipart.File, filePath string) error {
 
 	_, err = io.Copy(out, file)
 	return err
+}
+
+func (h *ManagementHandler) GetOverview(c context.Context, ctx *app.RequestContext) {
+	overview, err := h.managementService.GetOverview(c)
+	if err != nil {
+		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("获取概览失败", err))
+		return
+	}
+	ctx.JSON(consts.StatusOK, SuccessResponse("获取概览成功", overview))
 }

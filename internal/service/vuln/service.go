@@ -1,14 +1,16 @@
 package vuln
 
 import (
-	"blockSBOM/internal/contracts"
+	contracts "blockSBOM/internal/contracts/vuln"
 	"blockSBOM/internal/dal/model"
 	"blockSBOM/internal/dal/query"
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 type VulnService struct {
@@ -35,7 +37,11 @@ func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRe
 	}
 
 	// 先写入区块链
-	if err := s.contract.ReportVulnerability(ctx, vuln); err != nil {
+	vulnStr, err := json.Marshal(vuln)
+	if err != nil {
+		return nil, fmt.Errorf("序列化漏洞信息失败: %v", err)
+	}
+	if err := s.contract.ReportVulnerability(ctx.(contractapi.TransactionContextInterface), vuln.ID, string(vulnStr)); err != nil {
 		return nil, fmt.Errorf("报告区块链漏洞失败: %v", err)
 	}
 
@@ -49,23 +55,29 @@ func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRe
 
 func (s *VulnService) GetVulnerability(ctx context.Context, id string) (*model.Vulnerability, error) {
 	// 优先从数据库查询
-	vuln, err := s.repo.GetVulnerability(ctx, id)
+	vulnDoc, err := s.repo.GetVulnerability(ctx, id)
 	if err == nil {
-		return vuln, nil
+		return vulnDoc, nil
 	}
 
 	// 数据库查询失败，从区块链获取
-	vuln, err = s.contract.GetVulnerability(ctx, id)
+	vulnStr, err := s.contract.GetVulnerability(ctx.(contractapi.TransactionContextInterface), id)
 	if err != nil {
 		return nil, fmt.Errorf("获取漏洞信息失败: %v", err)
 	}
 
+	// 反序列化漏洞信息
+	var vuln model.Vulnerability
+	if err := json.Unmarshal([]byte(vulnStr), &vuln); err != nil {
+		return nil, fmt.Errorf("反序列化漏洞信息失败: %v", err)
+	}
+
 	// 同步到数据库
-	if err := s.repo.CreateVulnerability(ctx, vuln); err != nil {
+	if err := s.repo.CreateVulnerability(ctx, &vuln); err != nil {
 		fmt.Printf("同步漏洞信息到数据库失败: %v\n", err)
 	}
 
-	return vuln, nil
+	return &vuln, nil
 }
 
 func (s *VulnService) ListVulnerabilities(ctx context.Context, severity string, offset, limit int) ([]*model.Vulnerability, int64, error) {

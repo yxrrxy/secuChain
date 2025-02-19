@@ -4,8 +4,9 @@ import (
 	"blockSBOM/internal/api"
 	"blockSBOM/internal/api/handlers"
 	"blockSBOM/internal/config"
-	"blockSBOM/internal/dal/dal"
-	"blockSBOM/internal/dal/dal/query"
+	"blockSBOM/internal/contracts"
+	"blockSBOM/internal/dal"
+	"blockSBOM/internal/dal/query"
 	"blockSBOM/internal/service/auth"
 	"blockSBOM/internal/service/did"
 	"blockSBOM/internal/service/sbom"
@@ -29,14 +30,6 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	}
 
 	// 初始化 Fabric 客户端
-	fabricClient, err := fabric.NewFabricClient(
-		cfg.Fabric.ConfigPath,
-		cfg.Fabric.ChannelID,
-		cfg.Fabric.ChaincodeName,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("初始化Fabric客户端失败: %v", err)
-	}
 
 	// 初始化合约客户端
 	didContract := contracts.NewDIDContract(fabricClient)
@@ -71,7 +64,7 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	h := server.Default(server.WithHostPorts(address))
 
 	// 注册路由
-	api.RegisterRoutes(h, authHandler, didHandler, sbomHandler, vulnHandler)
+	api.RegisterRoutes(h, authHandler, didHandler, sbomHandler, vulnHandler, managementHandler)
 
 	return h, nil
 }
