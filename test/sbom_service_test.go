@@ -1,4 +1,4 @@
-package sbom
+package test
 
 import (
 	"blockSBOM/internal/dal/model"

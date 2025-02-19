@@ -7,7 +7,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/google/uuid v1.6.0
 	github.com/hyperledger/fabric-contract-api-go v1.2.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
 	golang.org/x/crypto v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
