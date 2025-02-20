@@ -46,6 +46,31 @@ transmit_results:
 	echo "Transmitting SBOM and vulnerability results..."
 	curl -F "file=@E:/Github/blockSBOM/backend/$(OUTPUT_FILENAME).$(OUTPUT_SUFFIX)" $(RESULT_UPLOAD_URL)
 
+# 启动环境（数据库和Fabric网络）
+.PHONY: env-up
+env-up:
+	@echo "Starting environment..."
+	docker-compose up -d mysql
+
+# 停止环境
+.PHONY: env-down
+env-down:
+	@echo "Stopping environment..."
+	docker-compose down
+	cd scripts/fabric/test-network && ./network.sh down
+
+# 启动 API 服务
+.PHONY: api
+api:
+	@echo "Starting API server..."
+	go run internal/cmd/api/main.go
+
+# 开发模式启动（带热重载）
+.PHONY: dev
+dev:
+	@echo "Starting API server in development mode..."
+	air -c .air.toml
+
 # 清理
 clean:
 	rm -f E:/Github/blockSBOM/backend/output/service/vuln.png

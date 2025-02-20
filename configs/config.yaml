@@ -2,10 +2,21 @@ server:
     port: 8080
     mode: debug
 database:
-    host: localhost
+    host: "localhost"
     port: 3306
-    username: root
-    password: zth20041017
-    dbname: blocksbom
+    username: "root"
+    password: "blocksbom"
+    dbname: "blocksbom"
 jwt:
     secret: WLvozgf-GQJNw1FYWboOfEe3AH8ltoDGT-k3DFUUcJY=
+fabric:
+    configPath: "configs/connection/fabric-config.yaml"
+    channelID: "mychannel"
+    chaincodeName: "mycc"
+    userName: "Admin"
+    orgName: "Org1"
+    channelName: "mychannel"
+    mspID: "Org1MSP"
+    certPath: "scripts/fabric/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/cert.pem"
+    keyPath: "scripts/fabric/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/priv_sk"
+    tlsCertPath: "scripts/fabric/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"

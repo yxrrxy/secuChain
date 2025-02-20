@@ -170,49 +170,7 @@ check_tool "zip"
 # 部署链码
 deploy_chaincode "did" "../internal/blockchain/contracts/did"
 deploy_chaincode "sbom" "../internal/blockchain/contracts/sbom"
-
-create_network_config() {
-    mkdir -p ../configs/fabric/crypto-config
-    cp -r organizations/peerOrganizations ../configs/fabric/crypto-config/
-    cp -r organizations/ordererOrganizations ../configs/fabric/crypto-config/
-    
-    cat > ../configs/connection/fabric-config.yaml << EOL
-name: "test-network"
-version: 1.0.0
-client:
-  organization: Org1
-  connection:
-    timeout:
-      peer:
-        endorser: '300'
-organizations:
-  Org1:
-    mspid: Org1MSP
-    peers:
-      - peer0.org1.example.com
-    certificateAuthorities:
-      - ca.org1.example.com
-peers:
-  peer0.org1.example.com:
-    url: grpcs://localhost:7051
-    tlsCACerts:
-      path: configs/fabric/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-    grpcOptions:
-      ssl-target-name-override: peer0.org1.example.com
-      hostnameOverride: peer0.org1.example.com
-certificateAuthorities:
-  ca.org1.example.com:
-    url: https://localhost:7054
-    caName: ca-org1
-    tlsCACerts:
-      path: configs/fabric/crypto-config/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem
-    registrar:
-      enrollId: admin
-      enrollSecret: adminpw
-EOL
-}
-
-create_network_config
+deploy_chaincode "vuln" "../internal/blockchain/contracts/vuln"
 
 # 注册身份
 echo "注册管理员身份..."
