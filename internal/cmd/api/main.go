@@ -3,8 +3,8 @@ package main
 import (
 	"blockSBOM/internal/api"
 	"blockSBOM/internal/api/handlers"
+	"blockSBOM/internal/blockchain/fabric"
 	"blockSBOM/internal/config"
-	"blockSBOM/internal/contracts"
 	"blockSBOM/internal/dal"
 	"blockSBOM/internal/dal/query"
 	"blockSBOM/internal/service/auth"
@@ -20,6 +20,10 @@ import (
 	"syscall"
 	"time"
 
+	didContracts "blockSBOM/internal/blockchain/contracts/did"
+	sbomContracts "blockSBOM/internal/blockchain/contracts/sbom"
+	vulnContracts "blockSBOM/internal/blockchain/contracts/vuln"
+
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
@@ -30,11 +34,31 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	}
 
 	// 初始化 Fabric 客户端
+	fabricClient, err := fabric.NewFabricClient(
+		cfg.Fabric.ConfigPath,
+		cfg.Fabric.ChannelID,
+		cfg.Fabric.UserName,
+		cfg.Fabric.OrgName,
+		cfg.Fabric.ChannelName,
+		cfg.Fabric.MSPID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("初始化 Fabric 客户端失败: %v", err)
+	}
 
 	// 初始化合约客户端
-	didContract := contracts.NewDIDContract(fabricClient)
-	sbomContract := contracts.NewSBOMContract(fabricClient)
-	vulnContract := contracts.NewVulnContract(fabricClient)
+	didContract, err := didContracts.NewDIDContract(fabricClient.Network)
+	if err != nil {
+		return nil, fmt.Errorf("初始化 DID 合约失败: %v", err)
+	}
+	sbomContract, err := sbomContracts.NewSBOMContract(fabricClient.Network)
+	if err != nil {
+		return nil, fmt.Errorf("初始化 SBOM 合约失败: %v", err)
+	}
+	vulnContract, err := vulnContracts.NewVulnContract(fabricClient.Network)
+	if err != nil {
+		return nil, fmt.Errorf("初始化 Vuln 合约失败: %v", err)
+	}
 
 	// 初始化数据库仓库
 	db := dal.GetDB()
@@ -58,13 +82,14 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	didHandler := handlers.NewDIDHandler(didService)
 	sbomHandler := handlers.NewSBOMHandler(sbomService)
 	vulnHandler := handlers.NewVulnHandler(vulnService)
+	//managementHandler := handlers.NewManagementHandler(managementService)
 
 	// 创建服务器
 	address := fmt.Sprintf(":%d", cfg.Server.Port)
 	h := server.Default(server.WithHostPorts(address))
 
 	// 注册路由
-	api.RegisterRoutes(h, authHandler, didHandler, sbomHandler, vulnHandler, managementHandler)
+	api.RegisterRoutes(h, authHandler, didHandler, sbomHandler, vulnHandler)
 
 	return h, nil
 }

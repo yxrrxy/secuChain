@@ -1,18 +1,18 @@
 package management
 
 import (
-	contracts "blockSBOM/internal/contracts/manage"
+	"blockSBOM/internal/blockchain/contracts/manage"
 	"blockSBOM/internal/dal/query"
 	"context"
 	"errors"
 )
 
 type ManagementService struct {
-	contract *contracts.DIDContract
+	contract *manage.DIDContract
 	repo     *query.DIDRepository
 }
 
-func NewManagementService(contract *contracts.DIDContract, repo *query.DIDRepository) *ManagementService {
+func NewManagementService(contract *manage.DIDContract, repo *query.DIDRepository) *ManagementService {
 	return &ManagementService{
 		contract: contract,
 		repo:     repo,

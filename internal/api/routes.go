@@ -11,8 +11,7 @@ import (
 func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 	didHandler *handlers.DIDHandler,
 	sbomHandler *handlers.SBOMHandler,
-	vulnHandler *handlers.VulnHandler,
-	managementHandler *handlers.ManagementHandler) {
+	vulnHandler *handlers.VulnHandler) {
 	// API 版本分组
 	v1 := h.Group("/api/v1")
 
@@ -54,14 +53,5 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 			vuln.GET("/search", vulnHandler.SearchVulnerabilities)
 		}
 
-		// 管理系统路由
-		management := auth.Group("/management")
-		{
-			management.GET("/overview", managementHandler.GetOverview)
-			management.POST("/upload", managementHandler.UploadPackage)
-			management.GET("/packages", managementHandler.ListPackages)
-			management.GET("/packages/:id", managementHandler.GetPackageDetails)
-			management.GET("/scan/:id", managementHandler.ScanPackage)
-		}
 	}
 }

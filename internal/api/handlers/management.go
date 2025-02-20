@@ -35,8 +35,9 @@ func (h *ManagementHandler) UploadPackage(ctx *app.RequestContext) {
 		ctx.JSON(consts.StatusBadRequest, ErrorResponse("获取上传文件失败", err))
 		return
 	}
-
-	err = h.managementService.UploadPackage(ctx.GetContext(), file)
+	//先注释
+	_ = file
+	//err = h.managementService.UploadPackage(ctx.Request.Context(), file)
 	if err != nil {
 		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("上传文件失败", err))
 		return

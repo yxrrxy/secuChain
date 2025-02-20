@@ -1,7 +1,7 @@
 package did
 
 import (
-	contracts "blockSBOM/internal/contracts/did"
+	"blockSBOM/internal/blockchain/contracts/did"
 	"blockSBOM/internal/dal/model"
 	"blockSBOM/internal/dal/query"
 	"context"
@@ -10,15 +10,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 type DIDService struct {
-	contract *contracts.DIDContract
+	contract *did.SmartContract
 	repo     *query.DIDRepository
 }
 
-func NewDIDService(contract *contracts.DIDContract, repo *query.DIDRepository) *DIDService {
+func NewDIDService(contract *did.SmartContract, repo *query.DIDRepository) *DIDService {
 	return &DIDService{
 		contract: contract,
 		repo:     repo,
@@ -42,7 +41,7 @@ func (s *DIDService) CreateDID(ctx context.Context, req *CreateDIDRequest) (*mod
 		return nil, fmt.Errorf("序列化 DID 文档失败: %v", err)
 	}
 
-	if err := (*s.contract).CreateDID(ctx.(contractapi.TransactionContextInterface), id, string(docBytes)); err != nil {
+	if err := (*s.contract).CreateDID(ctx, id, string(docBytes)); err != nil {
 		return nil, fmt.Errorf("创建区块链 DID 失败: %v", err)
 	}
 
@@ -62,7 +61,7 @@ func (s *DIDService) ResolveDID(ctx context.Context, id string) (*model.DIDDocum
 	}
 
 	// 数据库查询失败，从区块链获取
-	docString, err := (*s.contract).ResolveDID(ctx.(contractapi.TransactionContextInterface), id)
+	docString, err := (*s.contract).ResolveDID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("解析区块链 DID 失败: %v", err)
 	}
@@ -104,7 +103,7 @@ func (s *DIDService) UpdateDID(ctx context.Context, id string, req *UpdateDIDReq
 		return nil, fmt.Errorf("序列化 DID 文档失败: %v", err)
 	}
 
-	if err := (*s.contract).CreateDID(ctx.(contractapi.TransactionContextInterface), id, string(docBytes)); err != nil {
+	if err := (*s.contract).CreateDID(ctx, id, string(docBytes)); err != nil {
 		return nil, fmt.Errorf("更新区块链 DID 失败: %v", err)
 	}
 

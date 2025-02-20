@@ -32,6 +32,10 @@ type Config struct {
 		ConfigPath    string `yaml:"configPath"`
 		ChannelID     string `yaml:"channelID"`
 		ChaincodeName string `yaml:"chaincodeName"`
+		UserName      string `yaml:"userName"`
+		OrgName       string `yaml:"orgName"`
+		ChannelName   string `yaml:"channelName"`
+		MSPID         string `yaml:"mspID"`
 	} `yaml:"fabric"`
 }
 
@@ -50,7 +54,7 @@ func LoadConfig() (*Config, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("配置文件不存在: %s", configPath)
 	}
-
+	fmt.Println("configPath: ", configPath)
 	// 读取配置文件
 	if err := loadYamlConfig(configPath, cfg); err != nil {
 		return nil, err

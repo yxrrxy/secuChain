@@ -1,7 +1,7 @@
 package vuln
 
 import (
-	contracts "blockSBOM/internal/contracts/vuln"
+	"blockSBOM/internal/blockchain/contracts/vuln"
 	"blockSBOM/internal/dal/model"
 	"blockSBOM/internal/dal/query"
 	"context"
@@ -10,15 +10,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 type VulnService struct {
-	contract contracts.VulnContract
+	contract vuln.VulnContract
 	repo     *query.VulnRepository
 }
 
-func NewVulnService(contract contracts.VulnContract, repo *query.VulnRepository) *VulnService {
+func NewVulnService(contract vuln.VulnContract, repo *query.VulnRepository) *VulnService {
 	return &VulnService{
 		contract: contract,
 		repo:     repo,
@@ -41,7 +40,7 @@ func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRe
 	if err != nil {
 		return nil, fmt.Errorf("序列化漏洞信息失败: %v", err)
 	}
-	if err := s.contract.ReportVulnerability(ctx.(contractapi.TransactionContextInterface), vuln.ID, string(vulnStr)); err != nil {
+	if err := s.contract.ReportVulnerability(ctx, vuln.ID, string(vulnStr)); err != nil {
 		return nil, fmt.Errorf("报告区块链漏洞失败: %v", err)
 	}
 
@@ -61,7 +60,7 @@ func (s *VulnService) GetVulnerability(ctx context.Context, id string) (*model.V
 	}
 
 	// 数据库查询失败，从区块链获取
-	vulnStr, err := s.contract.GetVulnerability(ctx.(contractapi.TransactionContextInterface), id)
+	vulnStr, err := s.contract.GetVulnerability(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("获取漏洞信息失败: %v", err)
 	}

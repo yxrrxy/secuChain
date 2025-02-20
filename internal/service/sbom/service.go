@@ -5,20 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 
-	contracts "blockSBOM/internal/contracts/sbom"
 	"blockSBOM/internal/dal/model"
 	"blockSBOM/internal/dal/query"
 
+	"blockSBOM/internal/blockchain/contracts/sbom"
+
 	"github.com/google/uuid"
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
 
 type SBOMService struct {
-	contract *contracts.SmartContract
+	contract *sbom.SmartContract
 	repo     *query.SBOMRepository
 }
 
-func NewSBOMService(contract *contracts.SmartContract, repo *query.SBOMRepository) *SBOMService {
+func NewSBOMService(contract *sbom.SmartContract, repo *query.SBOMRepository) *SBOMService {
 	return &SBOMService{
 		contract: contract,
 		repo:     repo,
@@ -69,7 +69,7 @@ func (s *SBOMService) CreateSBOM(ctx context.Context, req *CreateSBOMRequest) (*
 		return nil, fmt.Errorf("序列化 SBOM 失败: %v", err)
 	}
 
-	if err := s.contract.StoreSBOM(ctx.(contractapi.TransactionContextInterface), sbom.ID, string(doc)); err != nil {
+	if err := (*s.contract).StoreSBOM(ctx, sbom.ID, string(doc)); err != nil {
 		return nil, fmt.Errorf("存储区块链 SBOM 失败: %v", err)
 	}
 
@@ -89,36 +89,36 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 	}
 
 	// 数据库查询失败，从区块链获取
-	sbomDoc, err := s.contract.GetSBOM(ctx.(contractapi.TransactionContextInterface), id)
+	sbomDoc, err := (*s.contract).GetSBOM(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("获取 SBOM 失败: %v", err)
 	}
 
 	// 反序列化 SBOM 文档
-	var chainSBOM contracts.SBOM
+	var chainSBOM model.SBOM
 	if err := json.Unmarshal([]byte(sbomDoc), &chainSBOM); err != nil {
 		return nil, fmt.Errorf("反序列化 SBOM 失败: %v", err)
 	}
 
 	// 根据格式反序列化嵌套的 SBOM 数据
-	if chainSBOM.SPDXSBOM != "" {
-		if err := json.Unmarshal([]byte(chainSBOM.SPDXSBOM), &spdxSBOM); err != nil {
-			return nil, fmt.Errorf("反序列化 SPDX SBOM 失败: %v", err)
-		}
-		spdxBytes, err := json.Marshal(spdxSBOM)
+	if chainSBOM.SPDXSBOM != nil {
+		spdxBytes, err := json.Marshal(chainSBOM.SPDXSBOM)
 		if err != nil {
 			return nil, fmt.Errorf("序列化 SPDX SBOM 失败: %v", err)
 		}
-		chainSBOM.SPDXSBOM = string(spdxBytes)
-	} else if chainSBOM.CDXSBOM != "" {
-		if err := json.Unmarshal([]byte(chainSBOM.CDXSBOM), &cdxSBOM); err != nil {
-			return nil, fmt.Errorf("反序列化 CycloneDX SBOM 失败: %v", err)
+		if err := json.Unmarshal(spdxBytes, &spdxSBOM); err != nil {
+			return nil, fmt.Errorf("反序列化 SPDX SBOM 失败: %v", err)
 		}
-		cdxBytes, err := json.Marshal(cdxSBOM)
+		chainSBOM.SPDXSBOM = &spdxSBOM
+	} else if chainSBOM.CDXSBOM != nil {
+		cdxBytes, err := json.Marshal(chainSBOM.CDXSBOM)
 		if err != nil {
 			return nil, fmt.Errorf("序列化 CycloneDX SBOM 失败: %v", err)
 		}
-		chainSBOM.CDXSBOM = string(cdxBytes)
+		if err := json.Unmarshal(cdxBytes, &cdxSBOM); err != nil {
+			return nil, fmt.Errorf("反序列化 CycloneDX SBOM 失败: %v", err)
+		}
+		chainSBOM.CDXSBOM = &cdxSBOM
 	}
 
 	// 同步到数据库
