@@ -76,3 +76,10 @@ dev:
 clean:
 	rm -f E:/Github/blockSBOM/backend/output/service/vuln.png
 	rm -f E:/Github/blockSBOM/backend/$(OUTPUT_FILENAME).$(OUTPUT_SUFFIX)
+
+#测试
+.PHONY:test
+test:
+	@echo “testing”
+	cd test
+	go test ./...
