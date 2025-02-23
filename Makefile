@@ -1,4 +1,5 @@
 # 定义变量
+GO := go1.23
 OPENSCA_SCRIPT_URL := https://raw.githubusercontent.com/XmirrorSecurity/OpenSCA-cli/master/scripts/install.ps1
 PROJECT_PATH := E:/Github/blockSBOM/backend
 CONFIG_PATH := E:/Github/blockSBOM/backend/app/sbom/config.json

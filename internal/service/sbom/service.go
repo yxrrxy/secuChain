@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"blockSBOM/internal/blockchain/contracts/sbom"
 	"blockSBOM/internal/dal/model"
 	"blockSBOM/internal/dal/query"
-
-	"blockSBOM/internal/blockchain/contracts/sbom"
 
 	"github.com/google/uuid"
 )
@@ -31,9 +30,6 @@ type CreateSBOMRequest struct {
 	SPDXSBOM *model.SPDXSBOM `json:"spdxSBOM,omitempty"`
 	CDXSBOM  *model.CDXSBOM  `json:"cdxSBOM,omitempty"`
 }
-
-var spdxSBOM model.SPDXSBOM
-var cdxSBOM model.CDXSBOM
 
 func (s *SBOMService) CreateSBOM(ctx context.Context, req *CreateSBOMRequest) (*model.SBOM, error) {
 	// 创建 SBOM 实例
@@ -106,6 +102,7 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 		if err != nil {
 			return nil, fmt.Errorf("序列化 SPDX SBOM 失败: %v", err)
 		}
+		var spdxSBOM model.SPDXSBOM
 		if err := json.Unmarshal(spdxBytes, &spdxSBOM); err != nil {
 			return nil, fmt.Errorf("反序列化 SPDX SBOM 失败: %v", err)
 		}
@@ -115,6 +112,7 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 		if err != nil {
 			return nil, fmt.Errorf("序列化 CycloneDX SBOM 失败: %v", err)
 		}
+		var cdxSBOM model.CDXSBOM
 		if err := json.Unmarshal(cdxBytes, &cdxSBOM); err != nil {
 			return nil, fmt.Errorf("反序列化 CycloneDX SBOM 失败: %v", err)
 		}
@@ -125,8 +123,8 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 	if err := s.repo.CreateSBOM(ctx, &model.SBOM{
 		ID:       chainSBOM.ID,
 		DID:      chainSBOM.DID,
-		SPDXSBOM: &spdxSBOM,
-		CDXSBOM:  &cdxSBOM,
+		SPDXSBOM: chainSBOM.SPDXSBOM,
+		CDXSBOM:  chainSBOM.CDXSBOM,
 	}); err != nil {
 		fmt.Printf("同步 SBOM 到数据库失败: %v\n", err)
 	}
@@ -134,8 +132,8 @@ func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, erro
 	return &model.SBOM{
 		ID:       chainSBOM.ID,
 		DID:      chainSBOM.DID,
-		SPDXSBOM: &spdxSBOM,
-		CDXSBOM:  &cdxSBOM,
+		SPDXSBOM: chainSBOM.SPDXSBOM,
+		CDXSBOM:  chainSBOM.CDXSBOM,
 	}, nil
 }
 
