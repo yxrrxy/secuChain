@@ -34,7 +34,8 @@ func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRe
 		Published:          time.Now().UTC(),
 		Updated:            time.Now().UTC(),
 	}
-
+	//获取漏洞库
+	
 	// 先写入区块链
 	vulnStr, err := json.Marshal(vuln)
 	if err != nil {

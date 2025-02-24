@@ -1,146 +1,95 @@
 package sbom
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-
-	"blockSBOM/internal/blockchain/contracts/sbom"
-	"blockSBOM/internal/dal/model"
-	"blockSBOM/internal/dal/query"
-
-	"github.com/google/uuid"
+	"log"
+	"net"
+	"net/rpc"
+	"os"
+	"os/exec"
+	"path/filepath"
 )
 
-type SBOMService struct {
-	contract *sbom.SmartContract
-	repo     *query.SBOMRepository
+type Vulnerability struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
 }
 
-func NewSBOMService(contract *sbom.SmartContract, repo *query.SBOMRepository) *SBOMService {
-	return &SBOMService{
-		contract: contract,
-		repo:     repo,
-	}
+// SBOMService 提供生成SBOM、加载漏洞库和扫描漏洞等功能
+type SBOMService struct{}
+
+// Args 表示生成SBOM或扫描漏洞的参数
+type Args struct {
+	Language    string
+	Format      string
+	ProjectPath string
+	PackagePath string
+	ConfigPath  string
+	Token       string
 }
 
-// 定义 CreateSBOMRequest 结构体
-type CreateSBOMRequest struct {
-	DID      string          `json:"did"`
-	SPDXSBOM *model.SPDXSBOM `json:"spdxSBOM,omitempty"`
-	CDXSBOM  *model.CDXSBOM  `json:"cdxSBOM,omitempty"`
+// GenerateSBOM 生成软件SBOM，支持SPDX和CDX格式，支持Python Java和Golang语言
+func (s *SBOMService) GenerateSBOM(args *Args, reply *string) error {
+	cmd := exec.Command("opensca-cli", "-path", args.ProjectPath, "-config", args.ConfigPath, "-out", fmt.Sprintf("sbom.%s", args.Format), "-token", args.Token)
+	cmd.Stdout = log.Writer()
+	cmd.Stderr = log.Writer()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("生成SBOM失败: %w", err)
+	}
+	*reply = "SBOM生成成功"
+	return nil
 }
 
-func (s *SBOMService) CreateSBOM(ctx context.Context, req *CreateSBOMRequest) (*model.SBOM, error) {
-	// 创建 SBOM 实例
-	sbom := &model.SBOM{
-		ID:       uuid.New().String(),
-		DID:      req.DID,
-		SPDXSBOM: req.SPDXSBOM,
-		CDXSBOM:  req.CDXSBOM,
-	}
-
-	// 设置 SBOM 格式和内容
-	if sbom.SPDXSBOM != nil {
-		sbom.Format = "spdx"
-		content, err := json.Marshal(sbom.SPDXSBOM)
-		if err != nil {
-			return nil, fmt.Errorf("序列化 SPDX SBOM 失败: %v", err)
-		}
-		sbom.Content = content
-	} else if sbom.CDXSBOM != nil {
-		sbom.Format = "cdx"
-		content, err := json.Marshal(sbom.CDXSBOM)
-		if err != nil {
-			return nil, fmt.Errorf("序列化 CycloneDX SBOM 失败: %v", err)
-		}
-		sbom.Content = content
-	} else {
-		return nil, fmt.Errorf("必须提供 SPDX 或 CycloneDX SBOM 数据")
-	}
-
-	// 先写入区块链
-	doc, err := json.Marshal(sbom)
+// LoadVulnerabilityDatabase 从指定文件中加载本地软件漏洞库
+func (s *SBOMService) LoadVulnerabilityDatabase(_ *struct{}, reply *[]Vulnerability) error {
+	relativePath := "../vuln/database.json"
+	currentDir, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("序列化 SBOM 失败: %v", err)
+		return fmt.Errorf("获取当前工作目录失败: %w", err)
 	}
-
-	if err := (*s.contract).StoreSBOM(ctx, sbom.ID, string(doc)); err != nil {
-		return nil, fmt.Errorf("存储区块链 SBOM 失败: %v", err)
-	}
-
-	// 再写入数据库
-	if err := s.repo.CreateSBOM(ctx, sbom); err != nil {
-		return nil, fmt.Errorf("存储数据库 SBOM 失败: %v", err)
-	}
-
-	return sbom, nil
-}
-
-func (s *SBOMService) GetSBOM(ctx context.Context, id string) (*model.SBOM, error) {
-	// 优先从数据库查询
-	sbom, err := s.repo.GetSBOM(ctx, id)
-	if err == nil {
-		return sbom, nil
-	}
-
-	// 数据库查询失败，从区块链获取
-	sbomDoc, err := (*s.contract).GetSBOM(ctx, id)
+	filePath := filepath.Join(currentDir, relativePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("获取 SBOM 失败: %v", err)
+		return fmt.Errorf("读取文件 %s 失败: %w", filePath, err)
 	}
-
-	// 反序列化 SBOM 文档
-	var chainSBOM model.SBOM
-	if err := json.Unmarshal([]byte(sbomDoc), &chainSBOM); err != nil {
-		return nil, fmt.Errorf("反序列化 SBOM 失败: %v", err)
+	var vulnerabilities []Vulnerability
+	if err := json.Unmarshal(data, &vulnerabilities); err != nil {
+		return fmt.Errorf("从文件 %s 反序列化JSON数据失败: %w", filePath, err)
 	}
+	*reply = vulnerabilities
 
-	// 根据格式反序列化嵌套的 SBOM 数据
-	if chainSBOM.SPDXSBOM != nil {
-		spdxBytes, err := json.Marshal(chainSBOM.SPDXSBOM)
-		if err != nil {
-			return nil, fmt.Errorf("序列化 SPDX SBOM 失败: %v", err)
-		}
-		var spdxSBOM model.SPDXSBOM
-		if err := json.Unmarshal(spdxBytes, &spdxSBOM); err != nil {
-			return nil, fmt.Errorf("反序列化 SPDX SBOM 失败: %v", err)
-		}
-		chainSBOM.SPDXSBOM = &spdxSBOM
-	} else if chainSBOM.CDXSBOM != nil {
-		cdxBytes, err := json.Marshal(chainSBOM.CDXSBOM)
-		if err != nil {
-			return nil, fmt.Errorf("序列化 CycloneDX SBOM 失败: %v", err)
-		}
-		var cdxSBOM model.CDXSBOM
-		if err := json.Unmarshal(cdxBytes, &cdxSBOM); err != nil {
-			return nil, fmt.Errorf("反序列化 CycloneDX SBOM 失败: %v", err)
-		}
-		chainSBOM.CDXSBOM = &cdxSBOM
-	}
-
-	// 同步到数据库
-	if err := s.repo.CreateSBOM(ctx, &model.SBOM{
-		ID:       chainSBOM.ID,
-		DID:      chainSBOM.DID,
-		SPDXSBOM: chainSBOM.SPDXSBOM,
-		CDXSBOM:  chainSBOM.CDXSBOM,
-	}); err != nil {
-		fmt.Printf("同步 SBOM 到数据库失败: %v\n", err)
-	}
-
-	return &model.SBOM{
-		ID:       chainSBOM.ID,
-		DID:      chainSBOM.DID,
-		SPDXSBOM: chainSBOM.SPDXSBOM,
-		CDXSBOM:  chainSBOM.CDXSBOM,
-	}, nil
+	return nil
 }
 
-func (s *SBOMService) ListSBOMsByDID(ctx context.Context, did string, offset, limit int) ([]*model.SBOM, int64, error) {
-	return s.repo.ListSBOMsByDID(ctx, did, offset, limit)
+// ScanForVulnerabilities 扫描用户上传的软件包，生成漏洞清单信息
+func (s *SBOMService) ScanForVulnerabilities(args *Args, reply *string) error {
+	cmd := exec.Command("opensca-cli", "-path", args.PackagePath, "-config", args.ConfigPath, "-out", "vulnerabilities.json", "-token", args.Token)
+	cmd.Stdout = log.Writer()
+	cmd.Stderr = log.Writer()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("扫描漏洞失败: %w", err)
+	}
+	*reply = "漏洞扫描完成"
+	return nil
 }
 
-func (s *SBOMService) SearchSBOMs(ctx context.Context, keyword string, offset, limit int) ([]*model.SBOM, int64, error) {
-	return s.repo.SearchSBOMs(ctx, keyword, offset, limit)
+func main() {
+	sbomService := new(SBOMService)
+	rpc.Register(sbomService)
+	l, err := net.Listen("tcp", ":12345")
+	if err != nil {
+		fmt.Println("监听错误:", err)
+		return
+	}
+	defer l.Close()
+	fmt.Println("在端口12345上提供RPC服务")
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("接受连接错误:", err)
+			continue
+		}
+		go rpc.ServeConn(conn)
+	}
 }
