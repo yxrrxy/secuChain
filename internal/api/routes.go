@@ -35,14 +35,26 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 		}
 
 		// SBOM 工具路由
-		sbom := auth.Group("/sbom")
+		sbom := h.Group("/sbom")
 		{
-			sbom.POST("/", sbomHandler.CreateSBOM)
-			sbom.GET("/:id", sbomHandler.GetSBOM)
-			sbom.GET("/did/:did", sbomHandler.ListSBOMsByDID)
-			sbom.GET("/search", sbomHandler.SearchSBOMs)
-		}
+			// 创建 SBOM
+			sbom.POST("/create", sbomHandler.CreateSBOM)
 
+			// 获取指定 ID 的 SBOM
+			sbom.GET("/:id", sbomHandler.GetSBOMFromBlockchain)
+
+			// 根据 DID 列出所有 SBOM
+			sbom.GET("/did/:did", sbomHandler.GetSBOMsByDIDFromBlockchain)
+			
+			// 保存 SBOM 到区块链
+			sbom.POST("/blockchain/save", sbomHandler.SaveSBOMToBlockchain)
+
+			// 加载漏洞库
+			sbom.POST("/vulnerabilities/load", sbomHandler.LoadVulnerabilityDatabase)
+
+			// 扫描漏洞
+			sbom.POST("/vulnerabilities/scan", sbomHandler.ScanForVulnerabilities)
+		}
 		// 漏洞扫描工具路由
 		vuln := auth.Group("/vuln")
 		{

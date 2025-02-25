@@ -3,6 +3,7 @@ package handlers
 import (
 	"blockSBOM/internal/service/sbom"
 	"context"
+	"encoding/json"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -18,61 +19,132 @@ func NewSBOMHandler(sbomService *sbom.SBOMService) *SBOMHandler {
 	}
 }
 
+// CreateSBOM 创建 SBOM
 func (h *SBOMHandler) CreateSBOM(c context.Context, ctx *app.RequestContext) {
 	var req sbom.CreateSBOMRequest
 	if err := ctx.BindAndValidate(&req); err != nil {
-		ctx.JSON(consts.StatusBadRequest, ErrorResponse("无效的请求参数", err))
+		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的请求参数", "message": err.Error()})
 		return
 	}
 
-	doc, err := h.sbomService.CreateSBOM(c, &req)
+	// 调用 SBOMService 的 GenerateSBOM 方法
+	args := sbom.Args{
+		Language:    req.Language,
+		Format:      req.Format,
+		ProjectPath: req.ProjectPath,
+		ConfigPath:  req.ConfigPath,
+		Token:       req.Token,
+	}
+	var reply string
+	err := h.sbomService.GenerateSBOM(&args, &reply)
 	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("创建SBOM失败", err))
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "创建 SBOM 失败", "message": err.Error()})
 		return
 	}
 
-	ctx.JSON(consts.StatusCreated, SuccessResponse("创建SBOM成功", doc))
+	ctx.JSON(consts.StatusCreated, map[string]string{"message": reply})
 }
 
-func (h *SBOMHandler) GetSBOM(c context.Context, ctx *app.RequestContext) {
-	id := ctx.Param("id")
-	doc, err := h.sbomService.GetSBOM(c, id)
+// LoadVulnerabilityDatabase 加载漏洞库
+func (h *SBOMHandler) LoadVulnerabilityDatabase(c context.Context, ctx *app.RequestContext) {
+	var reply []sbom.Vulnerability
+	err := h.sbomService.LoadVulnerabilityDatabase(nil, &reply)
 	if err != nil {
-		ctx.JSON(consts.StatusNotFound, ErrorResponse("获取SBOM失败", err))
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "加载漏洞库失败", "message": err.Error()})
 		return
 	}
 
-	ctx.JSON(consts.StatusOK, SuccessResponse("获取SBOM成功", doc))
+	ctx.JSON(consts.StatusOK, map[string]interface{}{
+		"message": "漏洞库加载成功",
+		"data":    reply,
+	})
 }
 
-func (h *SBOMHandler) ListSBOMsByDID(c context.Context, ctx *app.RequestContext) {
+// ScanForVulnerabilities 扫描漏洞
+func (h *SBOMHandler) ScanForVulnerabilities(c context.Context, ctx *app.RequestContext) {
+	var req sbom.ScanVulnerabilitiesRequest
+	if err := ctx.BindAndValidate(&req); err != nil {
+		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的请求参数", "message": err.Error()})
+		return
+	}
+
+	args := sbom.Args{
+		Language:    req.Language,
+		Format:      req.Format,
+		PackagePath: req.PackagePath,
+		ConfigPath:  req.ConfigPath,
+		Token:       req.Token,
+	}
+	var reply string
+	err := h.sbomService.ScanForVulnerabilities(&args, &reply)
+	if err != nil {
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "扫描漏洞失败", "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(consts.StatusOK, map[string]string{"message": reply})
+}
+
+// SaveSBOMToBlockchain 将 SBOM 保存到区块链
+func (h *SBOMHandler) SaveSBOMToBlockchain(c context.Context, ctx *app.RequestContext) {
+	var req sbom.SBOM
+	if err := ctx.BindAndValidate(&req); err != nil {
+		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的请求参数", "message": err.Error()})
+		return
+	}
+
+	// 将 SBOM 数据序列化为 JSON
+	sbomData, err := json.Marshal(req)
+	if err != nil {
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "序列化 SBOM 数据失败", "message": err.Error()})
+		return
+	}
+
+	// 调用 SBOMService 的 SaveSBOMToBlockchain 方法
+	sbomID, err := h.sbomService.SaveSBOMToBlockchain(string(sbomData))
+	if err != nil {
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "保存 SBOM 到区块链失败", "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(consts.StatusCreated, map[string]string{"message": "SBOM 保存成功", "id": sbomID})
+}
+
+// GetSBOMFromBlockchain 根据 ID 从区块链获取 SBOM
+func (h *SBOMHandler) GetSBOMFromBlockchain(c context.Context, ctx *app.RequestContext) {
+	sbomID := ctx.Param("id")
+	if sbomID == "" {
+		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的 SBOM ID"})
+		return
+	}
+
+	// 调用 SBOMService 的 GetSBOMFromBlockchain 方法
+	sbomData, err := h.sbomService.GetSBOMFromBlockchain(sbomID)
+	if err != nil {
+		ctx.JSON(consts.StatusNotFound, map[string]string{"error": "获取 SBOM 失败", "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(consts.StatusOK, map[string]string{"message": "获取 SBOM 成功", "data": sbomData})
+}
+
+// GetSBOMsByDIDFromBlockchain 根据 DID 从区块链获取所有 SBOM
+func (h *SBOMHandler) GetSBOMsByDIDFromBlockchain(c context.Context, ctx *app.RequestContext) {
 	did := ctx.Param("did")
-	offset := ctx.DefaultQuery("offset", "0")
-	limit := ctx.DefaultQuery("limit", "10")
-
-	offsetInt, limitInt := ParsePagination(offset, limit)
-
-	docs, total, err := h.sbomService.ListSBOMsByDID(c, did, offsetInt, limitInt)
-	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("获取SBOM列表失败", err))
+	if did == "" {
+		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的 DID"})
 		return
 	}
 
-	ctx.JSON(consts.StatusOK, PageResponse("获取SBOM列表成功", docs, total))
-}
-
-func (h *SBOMHandler) SearchSBOMs(c context.Context, ctx *app.RequestContext) {
-	keyword := ctx.Query("keyword")
-	offset := ctx.DefaultQuery("offset", "0")
-	limit := ctx.DefaultQuery("limit", "10")
-
-	offsetInt, limitInt := ParsePagination(offset, limit)
-
-	docs, total, err := h.sbomService.SearchSBOMs(c, keyword, offsetInt, limitInt)
+	// 调用 SBOMService 的 GetSBOMsByDIDFromBlockchain 方法
+	sboms, err := h.sbomService.GetSBOMsByDIDFromBlockchain(did)
 	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("搜索SBOM失败", err))
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "获取 SBOM 列表失败", "message": err.Error()})
 		return
 	}
 
-	ctx.JSON(consts.StatusOK, PageResponse("搜索SBOM成功", docs, total))
+	ctx.JSON(consts.StatusOK, map[string]interface{}{
+		"message": "获取 SBOM 列表成功",
+		"data":    sboms,
+	})
 }
