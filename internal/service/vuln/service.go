@@ -26,6 +26,22 @@ func NewVulnService(contract vuln.VulnContract, repo *query.VulnRepository) *Vul
 	}
 }
 
+// ReportVulnRequest 定义报告新漏洞的请求结构体
+type ReportVulnRequest struct {
+	CVE                string   `json:"cve" binding:"required"`                                     // CVE 编号
+	Description        string   `json:"description" binding:"required"`                             // 漏洞描述
+	Severity           string   `json:"severity" binding:"required,oneof=low medium high critical"` // 漏洞严重性
+	AffectedComponents []string `json:"affectedComponents" binding:"required"`                      // 受影响的组件
+}
+
+// UpdateVulnRequest 定义更新漏洞信息的请求结构体
+type UpdateVulnRequest struct {
+	ID                 string   `json:"id" binding:"required"`                                      // 漏洞唯一标识
+	Description        string   `json:"description" binding:"required"`                             // 更新后的漏洞描述
+	Severity           string   `json:"severity" binding:"required,oneof=low medium high critical"` // 更新后的漏洞严重性
+	AffectedComponents []string `json:"affectedComponents" binding:"required"`                      // 更新后的受影响组件
+}
+
 // ReportVulnerability 报告新的漏洞
 func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRequest) (*model.Vulnerability, error) {
 	vuln := &model.Vulnerability{

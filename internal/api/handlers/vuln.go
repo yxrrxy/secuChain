@@ -18,6 +18,7 @@ func NewVulnHandler(vulnService *vuln.VulnService) *VulnHandler {
 	}
 }
 
+// ReportVulnerability 报告新的漏洞
 func (h *VulnHandler) ReportVulnerability(c context.Context, ctx *app.RequestContext) {
 	var req vuln.ReportVulnRequest
 	if err := ctx.BindAndValidate(&req); err != nil {
@@ -34,6 +35,7 @@ func (h *VulnHandler) ReportVulnerability(c context.Context, ctx *app.RequestCon
 	ctx.JSON(consts.StatusCreated, SuccessResponse("报告漏洞成功", vulnerability))
 }
 
+// GetVulnerability 根据 ID 获取漏洞信息
 func (h *VulnHandler) GetVulnerability(c context.Context, ctx *app.RequestContext) {
 	id := ctx.Param("id")
 	vulnerability, err := h.vulnService.GetVulnerability(c, id)
@@ -45,6 +47,7 @@ func (h *VulnHandler) GetVulnerability(c context.Context, ctx *app.RequestContex
 	ctx.JSON(consts.StatusOK, SuccessResponse("获取漏洞信息成功", vulnerability))
 }
 
+// ListVulnerabilities 列出漏洞信息
 func (h *VulnHandler) ListVulnerabilities(c context.Context, ctx *app.RequestContext) {
 	severity := ctx.DefaultQuery("severity", "")
 	offset := ctx.DefaultQuery("offset", "0")
@@ -61,6 +64,7 @@ func (h *VulnHandler) ListVulnerabilities(c context.Context, ctx *app.RequestCon
 	ctx.JSON(consts.StatusOK, PageResponse("获取漏洞列表成功", vulnerabilities, total))
 }
 
+// GetVulnerabilitiesByComponent 根据组件获取漏洞信息
 func (h *VulnHandler) GetVulnerabilitiesByComponent(c context.Context, ctx *app.RequestContext) {
 	component := ctx.Param("component")
 	vulnerabilities, err := h.vulnService.GetVulnerabilitiesByComponent(c, component)
@@ -72,6 +76,7 @@ func (h *VulnHandler) GetVulnerabilitiesByComponent(c context.Context, ctx *app.
 	ctx.JSON(consts.StatusOK, SuccessResponse("获取组件漏洞成功", vulnerabilities))
 }
 
+// SearchVulnerabilities 搜索漏洞信息
 func (h *VulnHandler) SearchVulnerabilities(c context.Context, ctx *app.RequestContext) {
 	keyword := ctx.Query("keyword")
 	offset := ctx.DefaultQuery("offset", "0")

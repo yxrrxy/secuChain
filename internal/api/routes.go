@@ -45,23 +45,32 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 
 			// 根据 DID 列出所有 SBOM
 			sbom.GET("/did/:did", sbomHandler.GetSBOMsByDIDFromBlockchain)
-			
+
 			// 保存 SBOM 到区块链
 			sbom.POST("/blockchain/save", sbomHandler.SaveSBOMToBlockchain)
 
 			// 加载漏洞库
-			sbom.POST("/vulnerabilities/load", sbomHandler.LoadVulnerabilityDatabase)
+			sbom.POST("/vuln/load", sbomHandler.LoadVulnerabilityDatabase)
 
 			// 扫描漏洞
-			sbom.POST("/vulnerabilities/scan", sbomHandler.ScanForVulnerabilities)
+			sbom.POST("/vuln/scan", sbomHandler.ScanForVulnerabilities)
 		}
-		// 漏洞扫描工具路由
-		vuln := auth.Group("/vuln")
+		// Vuln 工具路由
+		vuln := h.Group("/vuln")
 		{
-			vuln.POST("/", vulnHandler.ReportVulnerability)
+			// 报告新的漏洞
+			vuln.POST("/report", vulnHandler.ReportVulnerability)
+
+			// 根据 ID 获取漏洞信息
 			vuln.GET("/:id", vulnHandler.GetVulnerability)
-			vuln.GET("/", vulnHandler.ListVulnerabilities)
+
+			// 列出漏洞信息
+			vuln.GET("/list", vulnHandler.ListVulnerabilities)
+
+			// 根据组件获取漏洞信息
 			vuln.GET("/component/:component", vulnHandler.GetVulnerabilitiesByComponent)
+
+			// 搜索漏洞信息
 			vuln.GET("/search", vulnHandler.SearchVulnerabilities)
 		}
 
