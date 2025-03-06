@@ -22,58 +22,6 @@ ORG1_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org1.example.com/users
 export CORE_PEER_TLS_ROOTCERT_FILE=$ORG1_PEER_TLS_ROOTCERT
 export CORE_PEER_MSPCONFIGPATH=$ORG1_MSPCONFIGPATH
 
-cd scripts/fabric/test-network
-
-
-find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} +
-find . -type f -name "*.config" -exec sed -i 's/\r$//' {} +
-
-sed -i 's/\r$//' ./organizations/fabric-ca/*.sh 2>/dev/null || true
-sed -i 's/\r$//' ./organizations/**/*.sh 2>/dev/null || true
-
-find . -type f -name "*.sh" -exec chmod +x {} +
-
-chmod +x ./network.sh
-chmod +x ./scripts/*.sh 2>/dev/null || true
-
-bash ./network.sh down
-bash ./network.sh up -ca
-bash ./network.sh createChannel -c mychannel
-
-check_tool() {
-    if ! command -v $1 &> /dev/null; then
-        echo "错误: $1 命令未找到"
-        echo "请安装 $1"
-        exit 1
-    fi
-}
-check_tool "jq"
-check_tool "tar"
-check_tool "zip"
-
-deploy_chaincode "did" "../internal/blockchain/contracts/did"
-deploy_chaincode "sbom" "../internal/blockchain/contracts/sbom"
-deploy_chaincode "vuln" "../internal/blockchain/contracts/vuln"
-
-check_health
-docker ps 
-
-# 注册身份
-#echo "注册管理员身份..."
-#cd ../..
-#go run cmd/fabric/enroll.go
-
-echo "已安装的链码列表："
-peer chaincode list --installed || echo "无法获取已安装链码列表"
-
-check_health() {
-    if ! docker ps --format '{{.Names}}' | grep -q "peer0.org1.example.com"; then
-        echo "错误: Peer 节点未正常启动"
-        exit 1
-    fi
-    docker ps
-}
-
 deploy_chaincode() {
     local NAME=$1
     local CHAINCODE_PATH=$2
@@ -130,3 +78,58 @@ deploy_chaincode() {
         echo "警告: peer 命令未找到，跳过验证步骤"
     fi
 }
+
+check_health() {
+    if ! docker ps --format '{{.Names}}' | grep -q "peer0.org1.example.com"; then
+        echo "错误: Peer 节点未正常启动"
+        exit 1
+    fi
+    docker ps
+}
+
+check_tool() {
+    if ! command -v $1 &> /dev/null; then
+        echo "错误: $1 命令未找到"
+        echo "请安装 $1"
+        exit 1
+    fi
+}
+
+cd scripts/fabric/test-network
+
+find . -type f -name "*.sh" -exec sed -i 's/\r$//' {} +
+find . -type f -name "*.config" -exec sed -i 's/\r$//' {} +
+
+sed -i 's/\r$//' ./organizations/fabric-ca/*.sh 2>/dev/null || true
+sed -i 's/\r$//' ./organizations/**/*.sh 2>/dev/null || true
+
+find . -type f -name "*.sh" -exec chmod +x {} +
+
+chmod +x ./network.sh
+chmod +x ./scripts/*.sh 2>/dev/null || true
+
+bash ./network.sh down
+bash ./network.sh up -ca
+bash ./network.sh createChannel -c mychannel
+
+check_tool "jq"
+check_tool "tar"
+check_tool "zip"
+
+deploy_chaincode "did" "../internal/blockchain/contracts/did"
+deploy_chaincode "sbom" "../internal/blockchain/contracts/sbom"
+deploy_chaincode "vuln" "../internal/blockchain/contracts/vuln"
+
+check_health
+docker ps 
+
+# 注册身份
+#echo "注册管理员身份..."
+#cd ../..
+#go run cmd/fabric/enroll.go
+
+echo "已安装的链码列表："
+peer chaincode list --installed || echo "无法获取已安装链码列表"
+
+
+
