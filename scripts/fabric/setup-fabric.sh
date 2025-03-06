@@ -63,6 +63,9 @@ docker ps
 #cd ../..
 #go run cmd/fabric/enroll.go
 
+echo "已安装的链码列表："
+peer chaincode list --installed || echo "无法获取已安装链码列表"
+
 check_health() {
     if ! docker ps --format '{{.Names}}' | grep -q "peer0.org1.example.com"; then
         echo "错误: Peer 节点未正常启动"
