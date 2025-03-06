@@ -39,22 +39,6 @@ func (r *DIDRepository) DeleteDID(ctx context.Context, id string) error {
 	}
 	return nil
 }
-
-func (r *DIDRepository) ListDIDs(ctx context.Context, offset, limit int) ([]*model.DID, int64, error) {
-	var docs []*model.DID
-	var total int64
-
-	if err := r.db.WithContext(ctx).Model(&model.DIDDocument{}).Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	if err := r.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&docs).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return docs, total, nil
-}
-
 func (r *DIDRepository) UpdateDID(ctx context.Context, doc *model.DID) error {
 	return r.db.WithContext(ctx).Save(doc).Error
 }
