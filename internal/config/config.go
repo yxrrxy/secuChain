@@ -47,7 +47,7 @@ func LoadConfig() (*Config, error) {
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		// 默认配置文件路径
-		configPath = "../../../configs/config.yaml"
+		configPath = "configs/config.yaml"
 	}
 
 	// 检查文件是否存在
