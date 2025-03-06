@@ -28,10 +28,10 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 		// 软件标识工具路由
 		did := auth.Group("/did")
 		{
-			did.POST("/", didHandler.CreateDID)
-			did.GET("/:id", didHandler.GetDID)
-			did.PUT("/:id", didHandler.UpdateDID)
-			did.GET("/", didHandler.ListDIDs)
+			did.POST("/registerDID", didHandler.RegisterDID)
+			did.GET("/:did", didHandler.ResolveDIDAPI)
+			did.PUT("/:did", didHandler.UpdateDID)
+			did.DELETE("/:did", didHandler.DeleteDID)
 		}
 
 		// SBOM 工具路由
