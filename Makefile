@@ -47,7 +47,7 @@ transmit_results:
 	echo "Transmitting SBOM and vulnerability results..."
 	curl -F "file=@E:/Github/blockSBOM/backend/$(OUTPUT_FILENAME).$(OUTPUT_SUFFIX)" $(RESULT_UPLOAD_URL)
 
-# 启动环境（数据库和Fabric网络）
+
 .PHONY: env-up
 env-up:
 	@echo "Starting environment..."
@@ -83,3 +83,11 @@ test:
 	@echo “testing”
 	cd test
 	go test ./...
+
+.PHONY: chaincode-deploy
+chaincode-deploy:
+	@echo "Deploying chaincode..."
+	tr -d '\r' < scripts/fabric/setup-fabric.sh > scripts/fabric/setup-fabric.tmp
+	mv scripts/fabric/setup-fabric.tmp scripts/fabric/setup-fabric.sh
+	chmod +x scripts/fabric/setup-fabric.sh
+	bash scripts/fabric/setup-fabric.sh
