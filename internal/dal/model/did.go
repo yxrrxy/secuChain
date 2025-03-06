@@ -15,3 +15,13 @@ type DIDDocument struct {
 func (DIDDocument) TableName() string {
 	return "did_documents"
 }
+type DID struct {
+	ID       string      `json:"id" gorm:"primaryKey;type:varchar(255)"`
+	AuthKey  KeyPairs    `json:"authKey" gorm:"type:jsonb"`
+	RecyKey  KeyPairs    `json:"recyKey" gorm:"type:jsonb"`
+	Document DIDDocument `json:"document" gorm:"foreignKey:ID"`
+}
+
+func (DID) TableName() string {
+	return "did_documents"
+}
