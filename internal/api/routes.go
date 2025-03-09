@@ -9,7 +9,6 @@ import (
 
 // RegisterRoutes 注册所有路由
 func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
-	didHandler *handlers.DIDHandler,
 	sbomHandler *handlers.SBOMHandler,
 	vulnHandler *handlers.VulnHandler) {
 	// API 版本分组
@@ -26,16 +25,17 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 		auth.POST("/auth/refresh", authHandler.RefreshToken)
 
 		// 软件标识工具路由
-		did := auth.Group("/did")
-		{
-			did.POST("/registerDID", didHandler.RegisterDID)
-			did.GET("/:did", didHandler.ResolveDIDAPI)
-			did.PUT("/:did", didHandler.UpdateDID)
-			did.DELETE("/:did", didHandler.DeleteDID)
-		}
+		//did := auth.Group("/did")
+		//{
+		//	did.POST("/registerDID", didHandler.RegisterDID)
+		//	did.GET("/:did", didHandler.ResolveDIDAPI)
+		//	did.PUT("/:did", didHandler.UpdateDID)
+		//	did.DELETE("/:did", didHandler.DeleteDID)
+		//}
 
 		// SBOM 工具路由
-		sbom := auth.Group("/sbom")
+
+		sbom := v1.Group("/sbom")
 		{
 			// 创建 SBOM
 			sbom.POST("/create", sbomHandler.CreateSBOM)
@@ -55,8 +55,9 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 			// 扫描漏洞
 			sbom.POST("/vuln/scan", sbomHandler.ScanForVulnerabilities)
 		}
+    
 		// Vuln 工具路由
-		vuln := auth.Group("/vuln")
+		vuln := v1.Group("/vuln")
 		{
 			// 报告新的漏洞
 			vuln.POST("/report", vulnHandler.ReportVulnerability)

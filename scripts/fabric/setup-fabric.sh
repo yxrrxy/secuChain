@@ -9,8 +9,8 @@ if [ -z "$GO_CMD" ]; then
     exit 1
 fi
 
-export PATH=${PWD}/fabric/bin:/usr/local/bin:/usr/bin:$PATH
-export FABRIC_CFG_PATH=${PWD}/fabric/config
+export PATH=${PWD}/bin:/usr/local/bin:/usr/bin:$PATH
+export FABRIC_CFG_PATH=${PWD}/config
 export CORE_PEER_TLS_ENABLED=true
 export CORE_PEER_LOCALMSPID="Org1MSP"
 export CORE_PEER_ADDRESS=localhost:7051
@@ -32,31 +32,31 @@ deploy_chaincode() {
     echo "准备 $NAME 链码..."
     cd $REAL_CHAINCODE_PATH
     
-    if [ ! -f "go.mod" ]; then
-        echo "初始化 go.mod..."
-        $GO_CMD mod init blockSBOM/internal/blockchain/contracts/$NAME
-    fi
+    #if [ ! -f "go.mod" ]; then
+    #    echo "初始化 go.mod..."
+    #    $GO_CMD mod init blockSBOM/internal/blockchain/contracts/$NAME
+    #fi
+    #
+    #echo "添加依赖..."
+    #$GO_CMD mod tidy
+    #$GO_CMD mod vendor
     
-    echo "添加依赖..."
-    $GO_CMD mod tidy
-    $GO_CMD mod vendor
-    
-    echo "打包链码..."
-    if /usr/bin/tar czf ${NAME}.tar.gz ./* 2>/dev/null; then
-        echo "tar 打包成功"
-    else
-        echo "tar 打包失败，尝试使用 zip..."
-        if /usr/bin/zip -r ${NAME}.zip ./* 2>/dev/null; then
-            /bin/mv ${NAME}.zip ${NAME}.tar.gz
-            echo "zip 打包成功"
-        else
-            echo "打包失败"
-            exit 1
-        fi
-    fi
+    #echo "打包链码..."
+    #if /usr/bin/tar czf ${NAME}.tar.gz ./* 2>/dev/null; then
+    #    echo "tar 打包成功"
+    #else
+    #    echo "tar 打包失败，尝试使用 zip..."
+    #    if /usr/bin/zip -r ${NAME}.zip ./* 2>/dev/null; then
+    #        /bin/mv ${NAME}.zip ${NAME}.tar.gz
+    #        echo "zip 打包成功"
+    #    else
+    #        echo "打包失败"
+    #        exit 1
+    #    fi
+    #fi
     
     echo "移动链码包..."
-    /bin/mv ${NAME}.tar.gz ../../../../scripts/fabric/test-network/
+    /bin/mv ${NAME}.zip ../../../../scripts/fabric/test-network/
     
     # 返回测试网络目录并部署
     cd ../../../../scripts/fabric/test-network/
