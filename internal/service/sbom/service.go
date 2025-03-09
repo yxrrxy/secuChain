@@ -41,7 +41,7 @@ type Args struct {
 
 type Reply struct {
 	Message string `json:"message"`
-	Id      int    `json:"id"`
+	Address string `json:"address"`
 }
 
 // Vulnerability 表示漏洞信息
@@ -110,7 +110,7 @@ func (s *SBOMService) GenerateSBOM(args *Args, reply *Reply) error {
 		return fmt.Errorf("生成SBOM失败: %w", err)
 	}
 	reply.Message = "SBOM生成成功"
-	reply.Id = NewSBOMID()
+	reply.Address = fmt.Sprintf("sbom.%s", args.Format)
 	return nil
 }
 
@@ -176,8 +176,4 @@ func (s *SBOMService) GetSBOMsByDIDFromBlockchain(did string) ([]string, error) 
 		return nil, fmt.Errorf("从区块链获取SBOM列表失败: %w", err)
 	}
 	return sboms, nil
-}
-
-func NewSBOMID() int {
-	return int(time.Now().UnixNano())
 }
