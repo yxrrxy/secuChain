@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var ConfigPath = "config.json"
+
 // SBOMService 提供生成SBOM、加载漏洞库和扫描漏洞等功能
 type SBOMService struct {
 	contract sbom.SBOMContract // 智能合约接口
@@ -35,6 +37,11 @@ type Args struct {
 	PackagePath string
 	ConfigPath  string
 	Token       string
+}
+
+type Reply struct {
+	Message string `json:"message"`
+	Id      int    `json:"id"`
 }
 
 // Vulnerability 表示漏洞信息
@@ -95,14 +102,15 @@ type SBOM struct {
 }
 
 // GenerateSBOM 生成软件SBOM，支持SPDX和CDX格式，支持Python Java和Golang语言
-func (s *SBOMService) GenerateSBOM(args *Args, reply *string) error {
-	cmd := exec.Command("opensca-cli", "-path", args.ProjectPath, "-config", args.ConfigPath, "-out", fmt.Sprintf("sbom.%s", args.Format), "-token", args.Token)
+func (s *SBOMService) GenerateSBOM(args *Args, reply *Reply) error {
+	cmd := exec.Command("opensca-cli", "-path", args.ProjectPath, "-config", ConfigPath, "-out", fmt.Sprintf("sbom.%s", args.Format))
 	cmd.Stdout = log.Writer()
 	cmd.Stderr = log.Writer()
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("生成SBOM失败: %w", err)
 	}
-	*reply = "SBOM生成成功"
+	reply.Message = "SBOM生成成功"
+	reply.Id = NewSBOMID()
 	return nil
 }
 
@@ -168,4 +176,8 @@ func (s *SBOMService) GetSBOMsByDIDFromBlockchain(did string) ([]string, error) 
 		return nil, fmt.Errorf("从区块链获取SBOM列表失败: %w", err)
 	}
 	return sboms, nil
+}
+
+func NewSBOMID() int {
+	return int(time.Now().UnixNano())
 }
