@@ -29,20 +29,16 @@ func (h *SBOMHandler) CreateSBOM(c context.Context, ctx *app.RequestContext) {
 
 	// 调用 SBOMService 的 GenerateSBOM 方法
 	args := sbom.Args{
-		Language:    req.Language,
 		Format:      req.Format,
 		ProjectPath: req.ProjectPath,
-		ConfigPath:  req.ConfigPath,
-		Token:       req.Token,
 	}
-	var reply string
+	reply:= sbom.Reply{}
 	err := h.sbomService.GenerateSBOM(&args, &reply)
 	if err != nil {
 		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "创建 SBOM 失败", "message": err.Error()})
 		return
 	}
-
-	ctx.JSON(consts.StatusCreated, map[string]string{"message": reply})
+	ctx.JSON(consts.StatusCreated, reply)
 }
 
 // LoadVulnerabilityDatabase 加载漏洞库

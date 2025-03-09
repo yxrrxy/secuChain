@@ -34,6 +34,7 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 		//}
 
 		// SBOM 工具路由
+
 		sbom := v1.Group("/sbom")
 		{
 			// 创建 SBOM
@@ -54,6 +55,7 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 			// 扫描漏洞
 			sbom.POST("/vuln/scan", sbomHandler.ScanForVulnerabilities)
 		}
+    
 		// Vuln 工具路由
 		vuln := v1.Group("/vuln")
 		{

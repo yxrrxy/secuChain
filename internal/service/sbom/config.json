@@ -1,0 +1,45 @@
+{
+  "path": "E:/redis",
+
+  "out": "output.cdx.json,output.spdx.json,output.swid.json",
+
+  "log": "opensca.log",
+
+  "optional": {
+    "proxy": "http://127.0.0.1:7890"
+  },
+
+  "repo": {
+    "maven": [
+      {
+        "url": "https://maven.aliyun.com/repository/public"
+      },
+      {
+        "url": "https://repo.maven.apache.org/maven2/"
+      },
+      {
+        "url": "https://repo.company.com/nexus", 
+        "username": "user",
+        "password": "pass"
+      }
+    ],
+    "npm": [
+      {
+        "url": "https://registry.npmmirror.com"
+      },
+      {
+        "url": "https://registry.npmjs.org" 
+      }
+    ],
+
+    "composer": [
+      {
+        "url": "https://mirrors.aliyun.com/composer/p2"
+      }
+    ]
+  },
+
+  "origin": {
+    "json": "../data/local_cve_database.json" 
+  }
+}
