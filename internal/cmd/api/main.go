@@ -8,7 +8,6 @@ import (
 	"blockSBOM/internal/dal"
 	"blockSBOM/internal/dal/query"
 	"blockSBOM/internal/service/auth"
-	"blockSBOM/internal/service/did"
 	"blockSBOM/internal/service/sbom"
 	"blockSBOM/internal/service/vuln"
 	"blockSBOM/pkg/utils"
@@ -20,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	didContracts "blockSBOM/internal/blockchain/contracts/did"
+	//didContracts "blockSBOM/internal/blockchain/contracts/did"
 	sbomContracts "blockSBOM/internal/blockchain/contracts/sbom"
 	vulnContracts "blockSBOM/internal/blockchain/contracts/vuln"
 
@@ -47,7 +46,7 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	}
 
 	// 初始化合约客户端
-	didContract, err := didContracts.NewDIDContract(fabricClient.Network)
+	//didContract, err := didContracts.NewDIDContract(fabricClient.Network)
 	if err != nil {
 		return nil, fmt.Errorf("初始化 DID 合约失败: %v", err)
 	}
@@ -63,7 +62,7 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	// 初始化数据库仓库
 	db := dal.GetDB()
 	userRepo := query.NewUserRepository(db)
-	didRepo := query.NewDIDRepository(db)
+	//didRepo := query.NewDIDRepository(db)
 	sbomRepo := query.NewSBOMRepository(db)
 	vulnRepo := query.NewVulnRepository(db)
 
@@ -73,13 +72,13 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 
 	// 初始化服务
 	authService := auth.NewAuthService(userRepo, jwtHandler)
-	didService := did.NewDIDService(didContract, didRepo)
+	//didService := did.NewDIDService(didContract, didRepo)
 	sbomService := sbom.NewSBOMService(sbomContract, sbomRepo)
 	vulnService := vuln.NewVulnService(vulnContract, vulnRepo)
 
 	// 初始化处理器
 	authHandler := handlers.NewAuthHandler(authService)
-	didHandler := handlers.NewDIDHandler(didService)
+	//didHandler := handlers.NewDIDHandler(didService)
 	sbomHandler := handlers.NewSBOMHandler(sbomService)
 	vulnHandler := handlers.NewVulnHandler(vulnService)
 	//managementHandler := handlers.NewManagementHandler(managementService)
@@ -89,7 +88,7 @@ func setupApp(cfg *config.Config) (*server.Hertz, error) {
 	h := server.Default(server.WithHostPorts(address))
 
 	// 注册路由
-	api.RegisterRoutes(h, authHandler, didHandler, sbomHandler, vulnHandler)
+	api.RegisterRoutes(h, authHandler, sbomHandler, vulnHandler)
 
 	return h, nil
 }
