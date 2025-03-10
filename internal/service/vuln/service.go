@@ -9,14 +9,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
-
-	"github.com/google/uuid"
+	"path/filepath"
 )
 
 type VulnService struct {
 	contract vuln.VulnContract
 	repo     *query.VulnRepository
+}
+type Vulnerability struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
 }
 
 func NewVulnService(contract vuln.VulnContract, repo *query.VulnRepository) *VulnService {
@@ -42,33 +44,27 @@ type UpdateVulnRequest struct {
 	AffectedComponents []string `json:"affectedComponents" binding:"required"`                      // 更新后的受影响组件
 }
 
-// ReportVulnerability 报告新的漏洞
-func (s *VulnService) ReportVulnerability(ctx context.Context, req *ReportVulnRequest) (*model.Vulnerability, error) {
-	vuln := &model.Vulnerability{
-		ID:                 uuid.New().String(),
-		CVE:                req.CVE,
-		Description:        req.Description,
-		Severity:           req.Severity,
-		AffectedComponents: req.AffectedComponents,
-		Published:          time.Now().UTC(),
-		Updated:            time.Now().UTC(),
-	}
+// LoadVulnerabilityDatabase 从指定文件中加载本地软件漏洞库
+func (s *VulnService) LoadVulnerabilityDatabase(_ *struct{}, reply *[]Vulnerability) error {
+	// 加载本地软件漏洞库
+	InitDatabase()
 
-	// 序列化漏洞信息并写入区块链
-	vulnStr, err := json.Marshal(vuln)
+	relativePath := "../vuln/database.json"
+	currentDir, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("序列化漏洞信息失败: %v", err)
+		return fmt.Errorf("获取当前工作目录失败: %w", err)
 	}
-	if err := s.contract.ReportVulnerability(ctx, vuln.ID, string(vulnStr)); err != nil {
-		return nil, fmt.Errorf("报告区块链漏洞失败: %v", err)
+	filePath := filepath.Join(currentDir, relativePath)
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("读取文件 %s 失败: %w", filePath, err)
 	}
-
-	// 写入数据库
-	if err := s.repo.CreateVulnerability(ctx, vuln); err != nil {
-		return nil, fmt.Errorf("存储数据库漏洞失败: %v", err)
+	var vulnerabilities []Vulnerability
+	if err := json.Unmarshal(data, &vulnerabilities); err != nil {
+		return fmt.Errorf("从文件 %s 反序列化JSON数据失败: %w", filePath, err)
 	}
-
-	return vuln, nil
+	*reply = vulnerabilities
+	return nil
 }
 
 // GetVulnerability 根据 ID 获取漏洞信息
@@ -104,26 +100,9 @@ func (s *VulnService) ListVulnerabilities(ctx context.Context, severity string, 
 	return s.repo.ListVulnerabilities(ctx, severity, offset, limit)
 }
 
-// GetVulnerabilitiesByComponent 根据组件获取漏洞信息
-func (s *VulnService) GetVulnerabilitiesByComponent(ctx context.Context, component string) ([]*model.Vulnerability, error) {
-	return s.repo.GetVulnerabilitiesByComponent(ctx, component)
-}
-
 // SearchVulnerabilities 搜索漏洞信息
 func (s *VulnService) SearchVulnerabilities(ctx context.Context, keyword string, offset, limit int) ([]*model.Vulnerability, int64, error) {
 	return s.repo.SearchVulnerabilities(ctx, keyword, offset, limit)
-}
-
-// GenerateVulnerabilityDatabase 生成漏洞库
-func (s *VulnService) GenerateVulnerabilityDatabase() error {
-	// 调用外部脚本生成漏洞库
-	cmd := exec.Command("go", "run", "scripts/deploy/vuln/vuln.go")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("生成漏洞库失败: %v", err)
-	}
-	return nil
 }
 
 // GenerateVulnerabilityCharts 生成漏洞统计图表

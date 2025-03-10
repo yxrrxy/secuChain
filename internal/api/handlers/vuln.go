@@ -18,21 +18,19 @@ func NewVulnHandler(vulnService *vuln.VulnService) *VulnHandler {
 	}
 }
 
-// ReportVulnerability 报告新的漏洞
-func (h *VulnHandler) ReportVulnerability(c context.Context, ctx *app.RequestContext) {
-	var req vuln.ReportVulnRequest
-	if err := ctx.BindAndValidate(&req); err != nil {
-		ctx.JSON(consts.StatusBadRequest, ErrorResponse("无效的请求参数", err))
-		return
-	}
-
-	vulnerability, err := h.vulnService.ReportVulnerability(c, &req)
+// LoadVulnerabilityDatabase 加载漏洞库
+func (h *VulnHandler) LoadVulnerabilityDatabase(c context.Context, ctx *app.RequestContext) {
+	var reply []vuln.Vulnerability
+	err := h.vulnService.LoadVulnerabilityDatabase(nil, &reply)
 	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("报告漏洞失败", err))
+		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "加载漏洞库失败", "message": err.Error()})
 		return
 	}
 
-	ctx.JSON(consts.StatusCreated, SuccessResponse("报告漏洞成功", vulnerability))
+	ctx.JSON(consts.StatusOK, map[string]interface{}{
+		"message": "漏洞库加载成功",
+		"data":    reply,
+	})
 }
 
 // GetVulnerability 根据 ID 获取漏洞信息
@@ -62,18 +60,6 @@ func (h *VulnHandler) ListVulnerabilities(c context.Context, ctx *app.RequestCon
 	}
 
 	ctx.JSON(consts.StatusOK, PageResponse("获取漏洞列表成功", vulnerabilities, total))
-}
-
-// GetVulnerabilitiesByComponent 根据组件获取漏洞信息
-func (h *VulnHandler) GetVulnerabilitiesByComponent(c context.Context, ctx *app.RequestContext) {
-	component := ctx.Param("component")
-	vulnerabilities, err := h.vulnService.GetVulnerabilitiesByComponent(c, component)
-	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, ErrorResponse("获取组件漏洞失败", err))
-		return
-	}
-
-	ctx.JSON(consts.StatusOK, SuccessResponse("获取组件漏洞成功", vulnerabilities))
 }
 
 // SearchVulnerabilities 搜索漏洞信息

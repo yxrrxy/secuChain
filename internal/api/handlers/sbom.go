@@ -32,53 +32,13 @@ func (h *SBOMHandler) CreateSBOM(c context.Context, ctx *app.RequestContext) {
 		Format:      req.Format,
 		ProjectPath: req.ProjectPath,
 	}
-	reply:= sbom.Reply{}
+	reply := sbom.Reply{}
 	err := h.sbomService.GenerateSBOM(&args, &reply)
 	if err != nil {
 		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "创建 SBOM 失败", "message": err.Error()})
 		return
 	}
 	ctx.JSON(consts.StatusCreated, reply)
-}
-
-// LoadVulnerabilityDatabase 加载漏洞库
-func (h *SBOMHandler) LoadVulnerabilityDatabase(c context.Context, ctx *app.RequestContext) {
-	var reply []sbom.Vulnerability
-	err := h.sbomService.LoadVulnerabilityDatabase(nil, &reply)
-	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "加载漏洞库失败", "message": err.Error()})
-		return
-	}
-
-	ctx.JSON(consts.StatusOK, map[string]interface{}{
-		"message": "漏洞库加载成功",
-		"data":    reply,
-	})
-}
-
-// ScanForVulnerabilities 扫描漏洞
-func (h *SBOMHandler) ScanForVulnerabilities(c context.Context, ctx *app.RequestContext) {
-	var req sbom.ScanVulnerabilitiesRequest
-	if err := ctx.BindAndValidate(&req); err != nil {
-		ctx.JSON(consts.StatusBadRequest, map[string]string{"error": "无效的请求参数", "message": err.Error()})
-		return
-	}
-
-	args := sbom.Args{
-		Language:    req.Language,
-		Format:      req.Format,
-		PackagePath: req.PackagePath,
-		ConfigPath:  req.ConfigPath,
-		Token:       req.Token,
-	}
-	var reply string
-	err := h.sbomService.ScanForVulnerabilities(&args, &reply)
-	if err != nil {
-		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "扫描漏洞失败", "message": err.Error()})
-		return
-	}
-
-	ctx.JSON(consts.StatusOK, map[string]string{"message": reply})
 }
 
 // SaveSBOMToBlockchain 将 SBOM 保存到区块链

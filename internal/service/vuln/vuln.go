@@ -54,7 +54,7 @@ func fetchCveData(year int, state int) {
 		return
 	}
 
-	jsonFile, err := os.Create(fmt.Sprintf("CVE-%d-%d.json", year, state))
+	jsonFile, err := os.Create(fmt.Sprintf("database.json"))
 	if err != nil {
 		log.Println(err)
 		return

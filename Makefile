@@ -87,7 +87,7 @@ test:
 .PHONY: chaincode-deploy
 chaincode-deploy:
 	@echo "Deploying chaincode..."
-	tr -d '\r' < scripts/fabric/setup-fabric.sh > scripts/fabric/setup-fabric.tmp
-	mv scripts/fabric/setup-fabric.tmp scripts/fabric/setup-fabric.sh
-	chmod +x scripts/fabric/setup-fabric.sh
+#	tr -d '\r' < scripts/fabric/setup-fabric.sh > scripts/fabric/setup-fabric.tmp
+#s	mv scripts/fabric/setup-fabric.tmp scripts/fabric/setup-fabric.sh
+#s	chmod +x scripts/fabric/setup-fabric.sh
 	bash scripts/fabric/setup-fabric.sh
