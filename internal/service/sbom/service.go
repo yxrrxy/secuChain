@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -40,7 +41,6 @@ type Reply struct {
 	Message string `json:"message"`
 	Address string `json:"address"`
 }
-
 
 // CreateSBOMRequest 定义创建 SBOM 的请求参数
 type CreateSBOMRequest struct {
@@ -136,4 +136,14 @@ func (s *SBOMService) GetSBOMsByDIDFromBlockchain(did string) ([]string, error) 
 		return nil, fmt.Errorf("从区块链获取SBOM列表失败: %w", err)
 	}
 	return sboms, nil
+}
+
+func (s *SBOMService) GenerateSBOMCharts() error {
+	cmd := exec.Command("python3", "scripts/sbom_charts.py")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("生成SBOM图表失败: %w", err)
+	}
+	return nil
 }

@@ -48,13 +48,15 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 
 			// 保存 SBOM 到区块链
 			sbom.POST("/blockchain/save", sbomHandler.SaveSBOMToBlockchain)
+
+			//查看图像
 		}
-    
+
 		// Vuln 工具路由
 		vuln := v1.Group("/vuln")
-		{	
+		{
 			//先加载本地漏洞
-			vuln.POST("/load",vulnHandler.LoadVulnerabilityDatabase)
+			vuln.POST("/load", vulnHandler.LoadVulnerabilityDatabase)
 
 			// 根据 ID 获取漏洞信息
 			vuln.GET("/:id", vulnHandler.GetVulnerability)
@@ -64,6 +66,7 @@ func RegisterRoutes(h *server.Hertz, authHandler *handlers.AuthHandler,
 
 			// 搜索漏洞信息
 			vuln.GET("/search", vulnHandler.SearchVulnerabilities)
+			//加一个查看图像api?
 		}
 
 	}

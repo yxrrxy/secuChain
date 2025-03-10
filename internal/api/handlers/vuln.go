@@ -26,7 +26,6 @@ func (h *VulnHandler) LoadVulnerabilityDatabase(c context.Context, ctx *app.Requ
 		ctx.JSON(consts.StatusInternalServerError, map[string]string{"error": "加载漏洞库失败", "message": err.Error()})
 		return
 	}
-
 	ctx.JSON(consts.StatusOK, map[string]interface{}{
 		"message": "漏洞库加载成功",
 		"data":    reply,
