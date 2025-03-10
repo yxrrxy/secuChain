@@ -1,6 +1,7 @@
 package did
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -9,44 +10,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/pkg/errors"
 	"time"
 )
-
-// DIDContract 定义了与区块链交互的接口
-type DIDContract1 interface {
-	// 注册 DID
-	RegisterDID(ctx contractapi.TransactionContextInterface) (string, error)
-	// 更新 DID
-	UpdateDID(ctx contractapi.TransactionContextInterface, did string, recoveryKey string, recoveryPrivateKey string) (string, error)
-	// 注销 DID
-	Revoke(ctx contractapi.TransactionContextInterface, did string, recoveryKey string, recoveryPrivateKey string) error
-	// 查询 DID
-	QueryDID(ctx contractapi.TransactionContextInterface, did string) (string, error)
-}
-type DIDContract struct {
-	contractapi.Contract
-}
 
 type KeyPairs struct {
 	PrivateKey string
 	PublicKey  string
 	Type       string
 }
+
 type Proof struct {
 	Creator   string
 	Signature string
 	Type      string
 }
+
 type Authentication struct {
 	PublicKey string
 	Type      string
 }
+
 type Recovery struct {
 	PublicKey string
 	Type      string
 }
+
 type DIDDocument struct {
 	did            string
 	authentication Authentication
@@ -55,6 +45,7 @@ type DIDDocument struct {
 	created        string
 	updated        string
 }
+
 type DID struct {
 	did      string
 	authKey  KeyPairs
@@ -68,6 +59,7 @@ func generateDID() string {
 }
 
 // 生成 EC (secp256k1) 密钥对
+
 func generateKeyPair2() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
 	curve := elliptic.P256() // Go 标准库没有 secp256k1，可以用 P256，其他库支持 secp256k1
 	privateKey, err := ecdsa.GenerateKey(curve, rand.Reader)
@@ -78,18 +70,21 @@ func generateKeyPair2() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
 }
 
 // 对公钥进行 Base64 编码
+
 func encodePublicKey(pubKey *ecdsa.PublicKey) string {
 	pubBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
 	return base64.StdEncoding.EncodeToString(pubBytes)
 }
 
 // 对私钥进行 Base64 编码
+
 func encodePrivateKey(privKey *ecdsa.PrivateKey) string {
 	privBytes := privKey.D.Bytes()
 	return base64.StdEncoding.EncodeToString(privBytes)
 }
 
 // signDidDocument 使用私钥对 DID Document 进行签名
+
 func signDidDocument(privateKey *ecdsa.PrivateKey, didDocument DIDDocument) (string, error) {
 	// 将 DID Document 序列化为 JSON
 	documentJson, err := json.Marshal(didDocument)
@@ -111,6 +106,7 @@ func signDidDocument(privateKey *ecdsa.PrivateKey, didDocument DIDDocument) (str
 }
 
 // generatorDIDDocument 生成 DID 文档
+
 func generatorDIDDocument(did, publicKey, publicKey2 string) DIDDocument {
 	didDocument := DIDDocument{
 		did: did,
@@ -127,7 +123,8 @@ func generatorDIDDocument(did, publicKey, publicKey2 string) DIDDocument {
 }
 
 // createDID 创建 DID
-func createDID() (*DID, error) {
+
+func kkDID() (*DID, error) {
 	did := &DID{
 		did: generateDID(),
 	}
@@ -181,46 +178,52 @@ func createDID() (*DID, error) {
 
 	return did, nil
 }
+
 func verifyRecoveryKey(publicKey string, privateKey string) bool {
 	return publicKey != "" && privateKey != ""
+}
+
+// DIDContract 定义了与区块链交互的接口
+
+type DIDContract interface {
+	CreateDID(ctx context.Context) (string, error)
+	UpdateDID(ctx context.Context, did string, recoveryKey string, recoveryPrivateKey string) (string, error)
+	DeleteDID(ctx context.Context, did string, recoveryKey string, recoveryPrivateKey string) error
+	GetDID(ctx context.Context, did string) (string, error)
+}
+type SmartContract struct {
+	contract *client.Contract
+}
+
+func NewDIDContract(network *client.Network) (*SmartContract, error) {
+	contract := network.GetContract("did")
+	return &SmartContract{contract: contract}, nil
 }
 
 // DID 合约结构体
 
 // registerDID 注册一个新的 DID
-func (c *DIDContract) RegisterDID(ctx contractapi.TransactionContextInterface) (string, error) {
-	// 创建 DID
-	did, err := createDID()
+func (s *SmartContract) CreateDID(ctx context.Context) (string, error) {
+	did, err := kkDID()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("創建did失敗: %v", err)
 	}
-
-	// 检查 DID 是否已存在
-	existing, err := ctx.GetStub().GetState(did.did)
-	if err != nil {
-		return "", errors.New("从世界状态读取 DID 失败: " + err.Error())
-	}
-	if existing != nil && len(existing) > 0 {
-		return "", errors.New("DID 已存在")
-	}
-
-	// 存储 DID 文档
 	didJSON, err := json.Marshal(did)
 	if err != nil {
 		return "", errors.New("序列化 DID 文档失败: " + err.Error())
 	}
-
-	err = ctx.GetStub().PutState(did.did, didJSON)
+	// 提交交易到区块链
+	_, err = s.contract.SubmitTransaction("CreateDID", did.did, string(didJSON))
 	if err != nil {
-		return "", errors.New("存储状态失败: " + err.Error())
+		return "", fmt.Errorf("提交 DID 注册交易失败: %v", err)
 	}
-
-	return string(didJSON), nil
+	return string(didJSON), err
 }
 
-func (s *DIDContract) UpdateDID(ctx contractapi.TransactionContextInterface, did string, recoveryKey string, recoveryPrivateKey string) (string, error) {
+func (s *SmartContract) UpdateDID(ctx context.Context, did string, recoveryKey string, recoveryPrivateKey string) (string, error) {
 	// 读取 DID 数据
-	didData, err := ctx.GetStub().GetState(did)
+	didData, err := s.contract.EvaluateTransaction("QueryDID", did)
+
 	if err != nil {
 		return "", errors.New("从世界状态读取 DID 失败: " + err.Error())
 	}
@@ -269,7 +272,7 @@ func (s *DIDContract) UpdateDID(ctx contractapi.TransactionContextInterface, did
 	}
 
 	// 更新 DID 文档
-	err = ctx.GetStub().PutState(did, newJson)
+	_, err = s.contract.SubmitTransaction("UpdateDID", did, string(newJson))
 	if err != nil {
 		return "", fmt.Errorf("failed to update DID in world state: %v", err)
 	}
@@ -279,9 +282,10 @@ func (s *DIDContract) UpdateDID(ctx contractapi.TransactionContextInterface, did
 }
 
 // revoke 注销 DID
-func (c *DIDContract) Revoke(ctx contractapi.TransactionContextInterface, did string, recoveryKey string, recoveryPrivateKey string) error {
-	// 获取 DID 文档
-	didData, err := ctx.GetStub().GetState(did)
+
+func (s *SmartContract) DeleteDID(ctx context.Context, did string, recoveryKey string, recoveryPrivateKey string) error {
+	// 读取 DID 数据
+	didData, err := s.contract.EvaluateTransaction("GetDID", did)
 	if err != nil {
 		return fmt.Errorf("failed to read from world state: %v", err)
 	}
@@ -304,24 +308,30 @@ func (c *DIDContract) Revoke(ctx contractapi.TransactionContextInterface, did st
 	}
 
 	// 删除 DID
-	err = ctx.GetStub().DelState(did)
+	_, err = s.contract.SubmitTransaction("DeleteDID", did)
 	if err != nil {
 		return fmt.Errorf("failed to delete state: %v", err)
 	}
 
-	return nil
+	return err
 }
 
 // queryDID 查询 DID
-func (c *DIDContract) QueryDID(ctx contractapi.TransactionContextInterface, did string) (string, error) {
+func (s *SmartContract) GetDID(ctx context.Context, did string) (string, error) {
 	// 获取 DID 文档
-	existing, err := ctx.GetStub().GetState(did)
+	existing, err := s.contract.EvaluateTransaction("GetDID", did)
 	if err != nil {
-		return "", fmt.Errorf("failed to read from world state: %v", err)
+		return "", fmt.Errorf("獲取世界狀態失敗: %v", err)
 	}
 	if existing == nil || len(existing) == 0 {
-		return "", fmt.Errorf("DID does not exist")
+		return "", fmt.Errorf("DID不存在")
+	}
+	var DIDs string
+	if err := json.Unmarshal(existing, &DIDs); err != nil {
+		return "", fmt.Errorf("解析 DID失败: %v", err)
 	}
 
-	return string(existing), nil
+	return DIDs, nil
 }
+
+var _ DIDContract = (*SmartContract)(nil)
